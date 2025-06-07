@@ -1,26 +1,29 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@plugin "daisyui" {
+  themes: retro --default, halloween --prefersdark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Custom styling for active navigation links */
+.menu li a.active {
+  font-weight: 600;
+  color: hsl(var(--p));
+  background-color: hsl(var(--b2));
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+.menu li a:hover {
+  background-color: hsl(var(--b2));
+}
+
+/* Custom styling for navbar */
+nav .navbar {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 1024px) {
+  nav .navbar {
+    padding-left: 2rem;
+    padding-right: 2rem;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
