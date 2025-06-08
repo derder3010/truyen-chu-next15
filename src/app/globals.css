@@ -4,6 +4,22 @@
   themes: retro --default, halloween --prefersdark;
 }
 
+@property --font-livvic {
+  syntax: "*";
+  inherits: true;
+  initial-value: "Livvic, sans-serif";
+}
+
+@layer base {
+  :root {
+    font-family: var(--font-livvic);
+  }
+
+  body {
+    font-family: var(--font-livvic);
+  }
+}
+
 /* Custom styling for active navigation links */
 .menu li a.active {
   font-weight: 600;
@@ -26,4 +42,18 @@ nav .navbar {
     padding-left: 2rem;
     padding-right: 2rem;
   }
+}
+
+/* Styling for chapter content */
+.chapter-content {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  font-size: 1.1rem;
+  padding: 1rem 0;
+  font-family: var(--font-livvic);
+}
+
+/* Adjust spacing between paragraphs */
+.chapter-content p {
+  margin-bottom: 1.5rem;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import Image from "next/image";
+import Image from "~image";
 import Link from "next/link";
 import { Story } from "@/types";
 

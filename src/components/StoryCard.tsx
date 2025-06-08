@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "~image";
 import { Story } from "@/types";
 // import TagIcon from "./icons/TagIcon";
 import CheckCircleIcon from "./icons/CheckCircleIcon";
@@ -29,7 +29,7 @@ const StoryCard: React.FC<StoryCardProps> = ({ story }) => {
         </figure>
 
         <div className="card-body p-3 pt-2 rounded-b-xl">
-          <h3 className="card-title text-base line-clamp-1 text-primary group-hover:underline">
+          <h3 className="card-title text-base line-clamp-1 group-hover:text-primary group-hover:underline">
             {story.title}
           </h3>
           <p className="text-xs opacity-70">{story.author}</p>

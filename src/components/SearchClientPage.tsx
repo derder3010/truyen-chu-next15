@@ -2,16 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { MOCK_STORIES } from "@/lib/constants";
 import StoryCard from "@/components/StoryCard";
 import SearchIcon from "@/components/icons/SearchIcon";
 import { Story } from "@/types";
 
-const SearchClientPage: React.FC = () => {
+interface SearchClientPageProps {
+  initialStories: Story[]; // Các truyện ban đầu từ server component
+}
+
+const SearchClientPage: React.FC<SearchClientPageProps> = ({
+  initialStories,
+}) => {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
   const [searchTerm, setSearchTerm] = useState(initialQuery);
-  const [results, setResults] = useState<Story[]>([]);
+  const [results, setResults] = useState<Story[]>(initialStories);
+  const [allStories] = useState<Story[]>(initialStories);
 
   const handleSearch = (currentSearchTerm: string) => {
     if (currentSearchTerm.trim() === "") {
@@ -20,7 +26,7 @@ const SearchClientPage: React.FC = () => {
       return;
     }
     const lowercasedTerm = currentSearchTerm.toLowerCase();
-    const filteredStories = MOCK_STORIES.filter(
+    const filteredStories = allStories.filter(
       (story) =>
         story.title.toLowerCase().includes(lowercasedTerm) ||
         story.author.toLowerCase().includes(lowercasedTerm) ||
@@ -38,8 +44,10 @@ const SearchClientPage: React.FC = () => {
 
   // Perform search when component mounts or initialQuery changes
   useEffect(() => {
-    handleSearch(initialQuery);
-  }, [initialQuery]);
+    if (initialQuery) {
+      handleSearch(initialQuery);
+    }
+  }, [initialQuery, allStories]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

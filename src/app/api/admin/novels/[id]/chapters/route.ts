@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, getNovelChapters, fixChapterNumbering } from "@/lib/db";
+import { db, fixChapterNumbering } from "@/lib/db";
 import { chapters, stories } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth/server";
-import { eq } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 // GET: Fetch all chapters for a novel
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const params = await context.params;
   const { id } = params;
+  const searchParams = request.nextUrl.searchParams;
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
+  const sort = searchParams.get("sort") || "desc"; // desc for newest first, asc for oldest first
 
   try {
     // Check authentication and authorization
@@ -42,10 +48,47 @@ export async function GET(
       await fixChapterNumbering(novelId);
     }
 
-    // Fetch chapters for the novel using the helper function
-    const chaptersList = await getNovelChapters(novelId);
+    // Calculate pagination values
+    const offset = (page - 1) * limit;
 
-    return NextResponse.json({ chapters: chaptersList });
+    // Get total count of chapters
+    const countResult = await db
+      .select({ count: sql`count(*)` })
+      .from(chapters)
+      .where(eq(chapters.novelId, novelId));
+
+    const total = Number(countResult[0]?.count || 0);
+    const totalPages = Math.ceil(total / limit);
+
+    // Fetch chapters for the novel with pagination and sorting
+    const chaptersList = await db
+      .select()
+      .from(chapters)
+      .where(eq(chapters.novelId, novelId))
+      .orderBy(
+        sort === "desc"
+          ? desc(chapters.chapterNumber)
+          : asc(chapters.chapterNumber)
+      )
+      .limit(limit)
+      .offset(offset);
+
+    // Format createdAt and updatedAt
+    const formattedChapters = chaptersList.map((chapter) => ({
+      ...chapter,
+      createdAt: chapter.createdAt || Math.floor(Date.now() / 1000),
+      updatedAt: chapter.updatedAt || Math.floor(Date.now() / 1000),
+    }));
+
+    return NextResponse.json({
+      chapters: formattedChapters,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+    });
   } catch (error) {
     console.error("Error fetching chapters:", error);
     return NextResponse.json(
@@ -58,8 +101,9 @@ export async function GET(
 // POST: Add a new chapter
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
+  const params = await context.params;
   const { id } = params;
 
   try {

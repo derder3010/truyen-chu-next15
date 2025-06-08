@@ -24,7 +24,7 @@ const LatestChapters: React.FC<LatestChaptersProps> = ({
       }
 
       return formatDistanceToNow(publishDate, {
-        addSuffix: true,
+        addSuffix: false,
         locale: vi,
       });
     } catch (error) {
@@ -52,11 +52,11 @@ const LatestChapters: React.FC<LatestChaptersProps> = ({
                 <li key={chapter.id} className="py-3">
                   <Link
                     href={`/truyen/${chapter.storySlug}/${chapter.chapterNumber}`}
-                    className="flex items-start justify-between hover:bg-base-200 rounded-lg p-2 transition-colors"
+                    className="flex items-start justify-between hover:bg-base-200 rounded-lg p-2 transition-colors group"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-primary hover:underline">
-                        Chương {chapter.chapterNumber}: {chapter.title}
+                      <p className="font-medium group-hover:text-primary group-hover:underline">
+                        {chapter.title}
                       </p>
                       {story && (
                         <p className="text-sm opacity-70">{story.title}</p>

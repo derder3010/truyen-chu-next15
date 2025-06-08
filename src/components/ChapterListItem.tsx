@@ -18,7 +18,7 @@ const ChapterListItem: React.FC<ChapterListItemProps> = ({
     >
       <div className="flex justify-between items-center px-4 py-3">
         <span className="text-sm truncate hover:text-primary">
-          Chương {chapter.chapterNumber}: {chapter.title}
+          {chapter.title}
         </span>
         <span className="text-xs opacity-60 ml-2 whitespace-nowrap">
           {chapter.publishedDate}

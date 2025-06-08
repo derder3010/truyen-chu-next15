@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChapterNavigationProps } from "@/types";
@@ -19,6 +19,27 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
   isMobile = false,
 }) => {
   const router = useRouter();
+  const [selectedChapter, setSelectedChapter] = useState<string>(
+    currentChapter.chapterNumber.toString()
+  );
+
+  // Cập nhật giá trị selectedChapter khi currentChapter thay đổi
+  useEffect(() => {
+    setSelectedChapter(currentChapter.chapterNumber.toString());
+  }, [currentChapter]);
+
+  // In ra console để debug
+  useEffect(() => {
+    console.log("Current chapter:", currentChapter);
+    console.log("All chapters:", allChapters);
+    console.log("Selected chapter:", selectedChapter);
+  }, [currentChapter, allChapters, selectedChapter]);
+
+  const handleChapterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const chapterNumber = e.target.value;
+    setSelectedChapter(chapterNumber);
+    router.push(`/truyen/${storySlug}/${chapterNumber}`);
+  };
 
   // Mobile sticky bottom navigation
   if (isMobile) {
@@ -40,10 +61,8 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
           </Link>
 
           <select
-            value={currentChapter.chapterNumber}
-            onChange={(e) =>
-              router.push(`/truyen/${storySlug}/${e.target.value}`)
-            }
+            value={selectedChapter}
+            onChange={handleChapterChange}
             className="select select-bordered select-sm flex-1 max-w-[140px]"
             title="Chọn chương"
           >
@@ -99,10 +118,8 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
             </Link>
 
             <select
-              value={currentChapter.chapterNumber}
-              onChange={(e) =>
-                router.push(`/truyen/${storySlug}/${e.target.value}`)
-              }
+              value={selectedChapter}
+              onChange={handleChapterChange}
               className="select select-bordered select-sm min-w-[120px]"
               title="Chọn chương"
             >

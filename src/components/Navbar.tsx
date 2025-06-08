@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { NAV_LINKS } from "@/lib/constants";
+import { NAV_LINKS, APP_CONFIG } from "@/lib/config";
 import DarkModeToggle from "./DarkModeToggle";
 import SearchIcon from "./icons/SearchIcon";
 import MenuIcon from "./icons/MenuIcon";
@@ -51,8 +51,8 @@ const Navbar: React.FC = () => {
           </div>
 
           <Link href="/" className="btn btn-ghost normal-case text-xl">
-            <BookOpenIcon className="h-6 w-6 text-primary mr-2" />
-            TruyệnCV
+            <BookOpenIcon className="text-primary p-0 m-0" />
+            {APP_CONFIG.APP_NAME}
           </Link>
         </div>
 
@@ -62,7 +62,11 @@ const Navbar: React.FC = () => {
               <li key={link.label}>
                 <Link
                   href={link.path}
-                  className={isActive(link.path) ? "active font-medium" : ""}
+                  className={
+                    isActive(link.path)
+                      ? "active font-bold link "
+                      : "font-medium link link-hover hover:font-bold"
+                  }
                 >
                   {link.label}
                 </Link>

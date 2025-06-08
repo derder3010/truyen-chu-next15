@@ -1,23 +1,98 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Livvic } from "next/font/google";
 import "@/app/globals.css";
 import { Providers } from "@/components/Providers";
 import { SessionProvider } from "@/components/SessionProvider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const livvic = Livvic({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin", "vietnamese"],
+  display: "swap",
+  variable: "--font-livvic",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
 
 export const metadata: Metadata = {
-  title: "TruyệnCV - Đọc truyện chữ online",
+  metadataBase: new URL("https://yourdomain.com"),
+  title: {
+    template: "%s | Doctruyenfull.vn",
+    default: "Doctruyenfull.vn - Đọc truyện chữ online",
+  },
   description:
-    "Đọc truyện online, truyện hay cập nhật liên tục. TruyệnCV là trang web đọc truyện chữ tiếng Việt hiện đại, nhanh chóng và tối ưu, mang đến trải nghiệm đọc truyện tốt nhất.",
+    "Đọc truyện online, truyện hay cập nhật liên tục. Doctruyenfull.vn là trang web đọc truyện chữ tiếng Việt hiện đại, nhanh chóng và tối ưu, mang đến trải nghiệm đọc truyện tốt nhất.",
+  applicationName: "Doctruyenfull.vn",
+  authors: [{ name: "Doctruyenfull.vn Team" }],
+  generator: "Next.js",
+  keywords: [
+    "truyện chữ",
+    "đọc truyện online",
+    "truyện tiếng Việt",
+    "tiểu thuyết",
+    "truyện hay",
+    "truyện full",
+    "truyện mới",
+    "Doctruyenfull.vn",
+  ],
+  referrer: "origin-when-cross-origin",
+  creator: "Doctruyenfull.vn",
+  publisher: "Doctruyenfull.vn",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    title: "Doctruyenfull.vn - Đọc truyện chữ online",
+    description:
+      "Đọc truyện online, truyện hay cập nhật liên tục. Mang đến trải nghiệm đọc truyện tốt nhất.",
+    url: "https://yourdomain.com",
+    siteName: "Doctruyenfull.vn",
+    locale: "vi_VN",
+    type: "website",
+    images: [
+      {
+        url: "https://yourdomain.com/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Doctruyenfull.vn - Đọc truyện chữ online",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Doctruyenfull.vn - Đọc truyện chữ online",
+    description:
+      "Đọc truyện online, truyện hay cập nhật liên tục. Mang đến trải nghiệm đọc truyện tốt nhất.",
+    images: ["https://yourdomain.com/twitter-image.jpg"],
+    creator: "@truyencv",
+  },
+  icons: {
+    icon: [
+      { url: "/icon/favicon.ico", sizes: "64x64" },
+      { url: "/icon/favicon-16x16.png", sizes: "16x16" },
+      { url: "/icon/favicon-32x32.png", sizes: "32x32" },
+    ],
+    apple: { url: "/icon/apple-touch-icon.png", sizes: "180x180" },
+    other: [
+      {
+        url: "/icon/android-chrome-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icon/android-chrome-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+  },
+  category: "entertainment",
+  manifest: "/manifest.json",
 };
 
 export default async function ClientLayout({
@@ -31,9 +106,10 @@ export default async function ClientLayout({
   // - Chuẩn bị các cài đặt toàn cục
 
   return (
-    <html lang="vi" suppressHydrationWarning>
+    <html lang="vi" suppressHydrationWarning className={livvic.variable}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-base-200`}
+        className="antialiased min-h-screen bg-base-200"
+        suppressHydrationWarning
       >
         <SessionProvider>
           <Providers>

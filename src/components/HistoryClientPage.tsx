@@ -27,7 +27,25 @@ const HistoryClientPage: React.FC = () => {
         const saved = localStorage.getItem(READING_HISTORY_KEY);
         if (saved) {
           const parsed = JSON.parse(saved) as HistoryItem[];
-          setReadingHistory(parsed);
+
+          // Filter to keep only the most recent chapter for each story
+          const uniqueStories = new Map<string, HistoryItem>();
+
+          parsed.forEach((item) => {
+            if (
+              !uniqueStories.has(item.storyId) ||
+              uniqueStories.get(item.storyId)!.timestamp < item.timestamp
+            ) {
+              uniqueStories.set(item.storyId, item);
+            }
+          });
+
+          // Convert back to array and sort by timestamp (most recent first)
+          const filteredHistory = Array.from(uniqueStories.values()).sort(
+            (a, b) => b.timestamp - a.timestamp
+          );
+
+          setReadingHistory(filteredHistory);
         }
       } catch (error) {
         console.error("Failed to load reading history:", error);
@@ -89,7 +107,7 @@ const HistoryClientPage: React.FC = () => {
           {readingHistory.length > 0 ? (
             <ul className="divide-y divide-base-300">
               {readingHistory.map((item) => (
-                <li key={item.chapterId} className="py-4">
+                <li key={item.storyId} className="py-4">
                   <Link
                     href={`/truyen/${item.storySlug}/${item.chapterNumber}`}
                     className="block hover:bg-base-200 p-2 -m-2 rounded-lg transition-colors"

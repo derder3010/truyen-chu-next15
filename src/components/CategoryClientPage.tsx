@@ -2,27 +2,47 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { MOCK_STORIES, GENRES_LIST } from "@/lib/constants";
+import { useRouter, useSearchParams } from "next/navigation";
 import StoryCard from "@/components/StoryCard";
 import { Story } from "@/types";
 import TagIcon from "@/components/icons/TagIcon";
+import Pagination from "./Pagination";
 
-const CategoryClientPage: React.FC = () => {
+interface CategoryClientPageProps {
+  initialStories: Story[];
+  genres: string[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+const CategoryClientPage: React.FC<CategoryClientPageProps> = ({
+  initialStories,
+  genres,
+  pagination,
+}) => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const selectedGenre = searchParams.get("tag");
-  const [filteredStories, setFilteredStories] = useState<Story[]>(MOCK_STORIES);
+  const currentPage = searchParams.get("page")
+    ? parseInt(searchParams.get("page") || "1", 10)
+    : 1;
+  const [stories, setStories] = useState<Story[]>(initialStories);
 
+  // Cập nhật stories khi có thay đổi từ props
   useEffect(() => {
-    if (selectedGenre) {
-      setFilteredStories(
-        MOCK_STORIES.filter((story) => story.genres.includes(selectedGenre))
-      );
-    } else {
-      // If no genre selected, show all or a default set, here showing all
-      setFilteredStories(MOCK_STORIES);
-    }
-  }, [selectedGenre]);
+    setStories(initialStories);
+  }, [initialStories]);
+
+  const handlePageChange = (page: number) => {
+    // Chuyển hướng đến trang mới với thể loại được chọn (nếu có)
+    const genreParam = selectedGenre ? `&tag=${selectedGenre}` : "";
+    router.push(`/the-loai?page=${page}${genreParam}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="space-y-8">
@@ -40,7 +60,7 @@ const CategoryClientPage: React.FC = () => {
           </p>
 
           <div className="flex flex-wrap gap-2 mb-4">
-            {GENRES_LIST.map((genre) => (
+            {genres.map((genre) => (
               <Link
                 key={genre}
                 href={`/the-loai?tag=${encodeURIComponent(genre)}`}
@@ -65,12 +85,24 @@ const CategoryClientPage: React.FC = () => {
         </div>
       </div>
 
-      {filteredStories.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-          {filteredStories.map((story) => (
-            <StoryCard key={story.id} story={story} />
-          ))}
-        </div>
+      {stories.length > 0 ? (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+            {stories.map((story) => (
+              <StoryCard key={story.id} story={story} />
+            ))}
+          </div>
+
+          {pagination.totalPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
+        </>
       ) : (
         <div className="card bg-base-100 shadow-sm">
           <div className="card-body items-center text-center py-16">
