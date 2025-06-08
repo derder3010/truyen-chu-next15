@@ -58,7 +58,6 @@ export async function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
-
 export const config = {
   matcher: [
     // Match all request paths except for static assets and API auth

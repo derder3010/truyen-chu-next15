@@ -3,8 +3,6 @@ import { db } from "@/lib/db";
 import { stories, chapters } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-export const runtime = "edge";
-
 // GET: Fetch a single novel by slug for public view
 export async function GET(
   request: NextRequest,

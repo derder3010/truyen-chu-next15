@@ -4,8 +4,6 @@ import { users } from "@/lib/db/schema";
 import { verifySession } from "@/lib/auth/server";
 import bcrypt from "bcryptjs";
 
-export const runtime = "edge";
-
 export async function POST(request: NextRequest) {
   try {
     const session = await verifySession();

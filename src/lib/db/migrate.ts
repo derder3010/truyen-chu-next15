@@ -35,6 +35,7 @@ async function main() {
     // Create a direct client connection
     const client = createClient({
       url: process.env.DATABASE_URL || "file:./sqlite.db",
+      authToken: process.env.DATABASE_AUTH_TOKEN,
     });
 
     // Execute the SQL

@@ -10,6 +10,7 @@ dotenv.config();
 // Create the database connection
 const client = createClient({
   url: process.env.DATABASE_URL || "file:./sqlite.db",
+  authToken: process.env.DATABASE_AUTH_TOKEN,
 });
 
 // Export the database with schema

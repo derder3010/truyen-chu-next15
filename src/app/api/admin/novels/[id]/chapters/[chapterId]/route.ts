@@ -10,8 +10,6 @@ import { stories, chapters } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth/server";
 import { eq } from "drizzle-orm";
 
-export const runtime = "edge";
-
 // GET: Fetch a specific chapter
 export async function GET(
   request: NextRequest,

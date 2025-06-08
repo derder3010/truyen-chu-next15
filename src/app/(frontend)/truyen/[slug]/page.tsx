@@ -5,8 +5,6 @@ import StoryClientPage from "@/components/StoryClientPage";
 import { getStoryBySlug, getChaptersByStoryId } from "@/lib/api";
 import { PAGINATION } from "@/lib/config";
 
-export const runtime = "edge";
-
 type Props = {
   params: { slug: string };
   searchParams: { page?: string };

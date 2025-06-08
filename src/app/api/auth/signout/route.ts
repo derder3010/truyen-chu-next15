@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "edge";
-
 export async function POST() {
   try {
     // Clear the auth token by setting an expired cookie

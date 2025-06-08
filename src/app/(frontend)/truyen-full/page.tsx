@@ -5,8 +5,6 @@ import StoryCard from "@/components/StoryCard";
 import { getStories } from "@/lib/api";
 import Pagination from "@/components/Pagination";
 
-export const runtime = "edge";
-
 // Metadata cho trang truyện full
 export const metadata: Metadata = {
   title: `Truyện đã hoàn thành | ${APP_CONFIG.APP_NAME}`,

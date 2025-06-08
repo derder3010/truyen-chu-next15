@@ -6,8 +6,6 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
 import Image from "~image";
 
-export const runtime = "edge";
-
 // Novel type definition
 interface Novel {
   id: number;
