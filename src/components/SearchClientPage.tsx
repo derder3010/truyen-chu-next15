@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import StoryCard from "@/components/StoryCard";
 import SearchIcon from "@/components/icons/SearchIcon";
@@ -19,35 +19,38 @@ const SearchClientPage: React.FC<SearchClientPageProps> = ({
   const [results, setResults] = useState<Story[]>(initialStories);
   const [allStories] = useState<Story[]>(initialStories);
 
-  const handleSearch = (currentSearchTerm: string) => {
-    if (currentSearchTerm.trim() === "") {
-      setResults([]);
-      window.history.pushState({}, "", "/tim-kiem"); // Clear query param if search term is empty
-      return;
-    }
-    const lowercasedTerm = currentSearchTerm.toLowerCase();
-    const filteredStories = allStories.filter(
-      (story) =>
-        story.title.toLowerCase().includes(lowercasedTerm) ||
-        story.author.toLowerCase().includes(lowercasedTerm) ||
-        story.genres.some((genre) =>
-          genre.toLowerCase().includes(lowercasedTerm)
-        )
-    );
-    setResults(filteredStories);
-    window.history.pushState(
-      {},
-      "",
-      `/tim-kiem?q=${encodeURIComponent(currentSearchTerm)}`
-    ); // Update query param
-  };
+  const handleSearch = useCallback(
+    (currentSearchTerm: string) => {
+      if (currentSearchTerm.trim() === "") {
+        setResults([]);
+        window.history.pushState({}, "", "/tim-kiem"); // Clear query param if search term is empty
+        return;
+      }
+      const lowercasedTerm = currentSearchTerm.toLowerCase();
+      const filteredStories = allStories.filter(
+        (story) =>
+          story.title.toLowerCase().includes(lowercasedTerm) ||
+          story.author.toLowerCase().includes(lowercasedTerm) ||
+          story.genres.some((genre) =>
+            genre.toLowerCase().includes(lowercasedTerm)
+          )
+      );
+      setResults(filteredStories);
+      window.history.pushState(
+        {},
+        "",
+        `/tim-kiem?q=${encodeURIComponent(currentSearchTerm)}`
+      ); // Update query param
+    },
+    [allStories]
+  );
 
   // Perform search when component mounts or initialQuery changes
   useEffect(() => {
     if (initialQuery) {
       handleSearch(initialQuery);
     }
-  }, [initialQuery, allStories]);
+  }, [initialQuery, handleSearch]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

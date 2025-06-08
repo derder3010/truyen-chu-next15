@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
@@ -50,13 +50,7 @@ export default function AddChapterPage() {
   }, [title, chapterNumber, novelId]);
 
   // Fetch novel data to display title
-  useEffect(() => {
-    if (isAuthenticated && session?.user.role === "admin") {
-      fetchNovel();
-    }
-  }, [isAuthenticated, session, novelId]);
-
-  const fetchNovel = async () => {
+  const fetchNovel = useCallback(async () => {
     try {
       const response = await fetch(`/api/admin/novels/${novelId}`);
       if (!response.ok) {
@@ -102,7 +96,14 @@ export default function AddChapterPage() {
       console.error("Error fetching novel:", error);
       setFormError("Không thể tải dữ liệu truyện. Vui lòng thử lại sau.");
     }
-  };
+  }, [novelId]);
+
+  // Fetch novel data to display title
+  useEffect(() => {
+    if (isAuthenticated && session?.user.role === "admin") {
+      fetchNovel();
+    }
+  }, [isAuthenticated, session, novelId, fetchNovel]);
 
   // Kiểm tra xác thực và phân quyền admin
   useEffect(() => {

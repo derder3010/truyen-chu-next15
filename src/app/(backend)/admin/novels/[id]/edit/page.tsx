@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
@@ -66,14 +66,7 @@ export default function EditNovelPage() {
   const { session, loading, isAuthenticated } = useSession();
 
   // Fetch novel data
-  useEffect(() => {
-    if (isAuthenticated && session?.user.role === "admin" && novelId) {
-      fetchNovel();
-    }
-  }, [isAuthenticated, session, novelId]);
-
-  // Fetch novel data
-  const fetchNovel = async () => {
+  const fetchNovel = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/admin/novels/${novelId}`);
@@ -100,7 +93,14 @@ export default function EditNovelPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [novelId]);
+
+  // Fetch novel data
+  useEffect(() => {
+    if (isAuthenticated && session?.user.role === "admin" && novelId) {
+      fetchNovel();
+    }
+  }, [isAuthenticated, session, novelId, fetchNovel]);
 
   // Update slug when title changes (only if user hasn't manually edited it)
   useEffect(() => {

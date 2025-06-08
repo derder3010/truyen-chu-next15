@@ -76,6 +76,42 @@ export default function NovelDetailPage() {
     totalPages: 0,
   });
 
+  // Fetch chapters with pagination
+  const fetchChapters = useCallback(
+    async (page: number, limit: number) => {
+      try {
+        const chaptersResponse = await fetch(
+          `/api/admin/novels/${novelId}/chapters?page=${page}&limit=${limit}`
+        );
+
+        if (!chaptersResponse.ok) {
+          throw new Error("Failed to fetch chapters");
+        }
+
+        const chaptersData = await chaptersResponse.json();
+
+        setChapters(chaptersData.chapters);
+
+        // Set pagination if available in response
+        if (chaptersData.pagination) {
+          setPagination(chaptersData.pagination);
+        } else {
+          // Calculate pagination if not provided
+          setPagination({
+            total: chaptersData.chapters.length,
+            page,
+            limit,
+            totalPages: Math.ceil(chaptersData.chapters.length / limit),
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching chapters:", error);
+        setError("Không thể tải danh sách chương. Vui lòng thử lại sau.");
+      }
+    },
+    [novelId]
+  );
+
   // Fetch novel data
   const fetchNovel = useCallback(async () => {
     setIsLoading(true);
@@ -96,40 +132,7 @@ export default function NovelDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [novelId, pagination.page, pagination.limit]);
-
-  // Fetch chapters with pagination
-  const fetchChapters = async (page: number, limit: number) => {
-    try {
-      const chaptersResponse = await fetch(
-        `/api/admin/novels/${novelId}/chapters?page=${page}&limit=${limit}`
-      );
-
-      if (!chaptersResponse.ok) {
-        throw new Error("Failed to fetch chapters");
-      }
-
-      const chaptersData = await chaptersResponse.json();
-
-      setChapters(chaptersData.chapters);
-
-      // Set pagination if available in response
-      if (chaptersData.pagination) {
-        setPagination(chaptersData.pagination);
-      } else {
-        // Calculate pagination if not provided
-        setPagination({
-          total: chaptersData.chapters.length,
-          page,
-          limit,
-          totalPages: Math.ceil(chaptersData.chapters.length / limit),
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching chapters:", error);
-      setError("Không thể tải danh sách chương. Vui lòng thử lại sau.");
-    }
-  };
+  }, [novelId, pagination.page, pagination.limit, fetchChapters]);
 
   // Handle page change
   const handlePageChange = (newPage: number) => {

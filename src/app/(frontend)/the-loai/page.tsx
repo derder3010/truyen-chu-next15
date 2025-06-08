@@ -12,9 +12,7 @@ type PageProps = {
 export async function generateMetadata({
   searchParams,
 }: PageProps): Promise<Metadata> {
-  // Ensure searchParams is awaited
-  const params = await searchParams;
-  const selectedGenre = params.tag;
+  const selectedGenre = searchParams.tag;
 
   // Lấy danh sách thể loại từ API
   const genres = await getGenres();
@@ -58,10 +56,8 @@ export async function generateMetadata({
 }
 
 export default async function CategoryPage({ searchParams }: PageProps) {
-  // Await searchParams before accessing its properties
-  const params = await searchParams;
-  const tag = params.tag;
-  const pageParam = params.page;
+  const tag = searchParams.tag;
+  const pageParam = searchParams.page;
   const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
 
   // Lấy danh sách thể loại từ API
