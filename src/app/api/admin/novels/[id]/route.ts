@@ -8,6 +8,8 @@ import { randomUUID } from "crypto";
 import { existsSync } from "fs";
 import { eq } from "drizzle-orm";
 
+export const runtime = "edge";
+
 // GET: Fetch a single novel by ID
 export async function GET(
   request: NextRequest,

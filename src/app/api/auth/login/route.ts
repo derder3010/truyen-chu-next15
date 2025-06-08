@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createToken, getUserByCredentials } from "@/lib/auth/server";
 
+export const runtime = "edge";
+
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();

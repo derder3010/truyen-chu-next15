@@ -8,6 +8,8 @@ import ReadingHistoryTracker from "@/components/ReadingHistoryTracker";
 import FontSizeScript from "@/components/FontSizeScript";
 import { getStoryBySlug, getChaptersByStoryId, getChapter } from "@/lib/api";
 
+export const runtime = "edge";
+
 type Props = {
   params: {
     slug: string;

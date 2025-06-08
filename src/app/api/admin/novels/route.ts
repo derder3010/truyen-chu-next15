@@ -7,6 +7,8 @@ import { join } from "path";
 import { randomUUID } from "crypto";
 import { existsSync } from "fs";
 
+export const runtime = "edge";
+
 // GET: Fetch all novels
 export async function GET(request: NextRequest) {
   try {

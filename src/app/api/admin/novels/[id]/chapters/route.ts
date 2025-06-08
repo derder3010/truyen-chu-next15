@@ -5,6 +5,8 @@ import { getSession } from "@/lib/auth/server";
 import { eq, desc, asc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
+export const runtime = "edge";
+
 // GET: Fetch all chapters for a novel
 export async function GET(
   request: NextRequest,

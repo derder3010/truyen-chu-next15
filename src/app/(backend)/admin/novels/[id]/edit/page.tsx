@@ -6,6 +6,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
 import Image from "~image";
 
+export const runtime = "edge";
+
 // Function to convert Vietnamese characters to non-accented
 function removeVietnameseAccents(str: string) {
   return str

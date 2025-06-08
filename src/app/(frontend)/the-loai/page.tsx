@@ -4,6 +4,8 @@ import { APP_CONFIG, PAGINATION } from "@/lib/config";
 import CategoryClientPage from "@/components/CategoryClientPage";
 import { getGenres, getStories } from "@/lib/api";
 
+export const runtime = "edge";
+
 // Generate metadata cho trang thể loại
 export async function generateMetadata({
   searchParams,
