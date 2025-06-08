@@ -3,6 +3,8 @@ import { Livvic } from "next/font/google";
 import "@/app/globals.css";
 import { Providers } from "@/components/Providers";
 import { SessionProvider } from "@/components/SessionProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 const livvic = Livvic({
   weight: ["400", "500", "600", "700"],
@@ -114,7 +116,11 @@ export default async function ClientLayout({
         <SessionProvider>
           <Providers>
             <div className="bg-gradient-to-b from-base-300/50 to-transparent min-h-screen">
-              <main>{children}</main>
+              <main>
+                {children}
+                <SpeedInsights />
+                <Analytics />
+              </main>
             </div>
           </Providers>
         </SessionProvider>
