@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
@@ -64,14 +64,8 @@ export default function EditChapterPage() {
     }
   }, [title, chapterNumber, novelId, isLoading]);
 
-  // Fetch novel and chapter data
-  useEffect(() => {
-    if (isAuthenticated && session?.user.role === "admin") {
-      fetchData();
-    }
-  }, [isAuthenticated, session, novelId, chapterId]);
-
-  const fetchData = async () => {
+  // Fetch data function wrapped in useCallback
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Fetch novel data
@@ -112,7 +106,14 @@ export default function EditChapterPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [novelId, chapterId]);
+
+  // Fetch novel and chapter data
+  useEffect(() => {
+    if (isAuthenticated && session?.user.role === "admin") {
+      fetchData();
+    }
+  }, [isAuthenticated, session, fetchData]);
 
   // Kiểm tra xác thực và phân quyền admin
   useEffect(() => {
