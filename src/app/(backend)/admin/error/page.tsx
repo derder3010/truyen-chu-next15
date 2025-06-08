@@ -1,9 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function AdminError() {
+// Component that uses useSearchParams
+function ErrorContent() {
   const searchParams = useSearchParams();
   const message = searchParams.get("message") || "An error occurred";
 
@@ -44,5 +46,22 @@ export default function AdminError() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="loading loading-spinner loading-lg text-primary"></div>
+    </div>
+  );
+}
+
+export default function AdminError() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ErrorContent />
+    </Suspense>
   );
 }

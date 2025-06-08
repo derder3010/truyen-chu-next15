@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
 import Image from "~image";
@@ -27,7 +27,17 @@ interface Pagination {
   totalPages: number;
 }
 
-export default function NovelsPage() {
+// Loading fallback
+function LoadingFallback() {
+  return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="loading loading-spinner loading-lg text-primary"></div>
+    </div>
+  );
+}
+
+// Main content component that uses useSearchParams
+function NovelsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { session, loading, isAuthenticated } = useSession();
@@ -384,12 +394,6 @@ export default function NovelsPage() {
                           >
                             Sửa
                           </Link>
-                          {/* <button
-                            onClick={() => setNovelToDelete(novel)}
-                            className="btn btn-sm btn-outline btn-error"
-                          >
-                            Xóa
-                          </button> */}
                         </div>
                       </td>
                     </tr>
@@ -447,14 +451,14 @@ export default function NovelsPage() {
 
       {/* Delete confirmation modal */}
       {novelToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-base-100 p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 className="font-bold text-lg mb-4">Xác nhận xóa</h3>
+        <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-60 flex items-center justify-center p-4">
+          <div className="bg-base-100 p-6 rounded-box shadow-lg max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Xác nhận xóa</h3>
             <p>
               Bạn có chắc chắn muốn xóa truyện &ldquo;{novelToDelete.title}
               &rdquo;? Hành động này không thể hoàn tác.
             </p>
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="modal-action mt-6">
               <button
                 className="btn btn-ghost"
                 onClick={() => setNovelToDelete(null)}
@@ -481,5 +485,14 @@ export default function NovelsPage() {
         </div>
       )}
     </>
+  );
+}
+
+// Main page component wrapped in Suspense
+export default function NovelsPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <NovelsContent />
+    </Suspense>
   );
 }

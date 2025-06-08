@@ -1,18 +1,17 @@
 import React from "react";
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import { APP_CONFIG, PAGINATION } from "@/lib/config";
 import CategoryClientPage from "@/components/CategoryClientPage";
 import { getGenres, getStories } from "@/lib/api";
 
-type PageProps = {
-  searchParams: { tag?: string; page?: string };
-};
-
 // Generate metadata cho trang thể loại
 export async function generateMetadata({
   searchParams,
-}: PageProps): Promise<Metadata> {
-  const selectedGenre = searchParams.tag;
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}): Promise<Metadata> {
+  const selectedGenre =
+    typeof searchParams.tag === "string" ? searchParams.tag : undefined;
 
   // Lấy danh sách thể loại từ API
   const genres = await getGenres();
@@ -55,9 +54,15 @@ export async function generateMetadata({
   };
 }
 
-export default async function CategoryPage({ searchParams }: PageProps) {
-  const tag = searchParams.tag;
-  const pageParam = searchParams.page;
+export default async function CategoryPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const tag =
+    typeof searchParams.tag === "string" ? searchParams.tag : undefined;
+  const pageParam =
+    typeof searchParams.page === "string" ? searchParams.page : undefined;
   const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
 
   // Lấy danh sách thể loại từ API

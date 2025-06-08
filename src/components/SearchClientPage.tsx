@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import StoryCard from "@/components/StoryCard";
 import SearchIcon from "@/components/icons/SearchIcon";
@@ -10,9 +10,17 @@ interface SearchClientPageProps {
   initialStories: Story[]; // Các truyện ban đầu từ server component
 }
 
-const SearchClientPage: React.FC<SearchClientPageProps> = ({
-  initialStories,
-}) => {
+// Loading fallback component
+function SearchLoadingFallback() {
+  return (
+    <div className="flex justify-center items-center py-12">
+      <div className="loading loading-spinner loading-lg text-primary"></div>
+    </div>
+  );
+}
+
+// Component using useSearchParams
+function SearchContent({ initialStories }: SearchClientPageProps) {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
   const [searchTerm, setSearchTerm] = useState(initialQuery);
@@ -104,6 +112,15 @@ const SearchClientPage: React.FC<SearchClientPageProps> = ({
         </p>
       )}
     </div>
+  );
+}
+
+// Main component with Suspense
+const SearchClientPage: React.FC<SearchClientPageProps> = (props) => {
+  return (
+    <Suspense fallback={<SearchLoadingFallback />}>
+      <SearchContent {...props} />
+    </Suspense>
   );
 };
 
