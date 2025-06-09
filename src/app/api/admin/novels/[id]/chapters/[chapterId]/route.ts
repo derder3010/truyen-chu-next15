@@ -9,6 +9,7 @@ import {
 import { stories, chapters } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth/server";
 import { eq } from "drizzle-orm";
+import { revalidateChapter } from "@/app/actions";
 
 // GET: Fetch a specific chapter
 export async function GET(
@@ -136,6 +137,16 @@ export async function PUT(
       .set({ updatedAt: Math.floor(Date.now() / 1000) })
       .where(eq(stories.id, novelId));
 
+    // Get the story slug for revalidation
+    const story = await db.query.stories.findFirst({
+      where: eq(stories.id, novelId),
+    });
+
+    if (story) {
+      // Revalidate both the story and chapter pages
+      await revalidateChapter(story.slug, chapterNumber);
+    }
+
     return NextResponse.json({
       message: "Chapter updated successfully",
       chapter: updatedChapter[0],
@@ -188,6 +199,16 @@ export async function DELETE(
       .update(stories)
       .set({ updatedAt: Math.floor(Date.now() / 1000) })
       .where(eq(stories.id, novelId));
+
+    // Get the story slug for revalidation
+    const story = await db.query.stories.findFirst({
+      where: eq(stories.id, novelId),
+    });
+
+    if (story) {
+      // Revalidate the story page after chapter deletion
+      await revalidateChapter(story.slug, existingChapter.chapterNumber);
+    }
 
     return NextResponse.json({
       message: "Chapter deleted successfully",

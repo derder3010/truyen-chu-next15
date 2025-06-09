@@ -6,7 +6,11 @@ import ChapterNavigation from "@/components/ChapterNavigation";
 import KeyboardNavigation from "@/components/KeyboardNavigation";
 import ReadingHistoryTracker from "@/components/ReadingHistoryTracker";
 import FontSizeScript from "@/components/FontSizeScript";
+import ChapterContentWrapper from "@/components/ChapterContentWrapper";
 import { getStoryBySlug, getChaptersByStoryId, getChapter } from "@/lib/api";
+
+// Add ISR with 2-hour revalidation
+export const revalidate = 7200; // 2 hours in seconds
 
 type Props = {
   params: {
@@ -20,7 +24,7 @@ export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const { slug: storySlug, "chuong-slug": chapterSlug } = params;
+  const { slug: storySlug, "chuong-slug": chapterSlug } = await params;
   const chapterNumber = parseInt(chapterSlug, 10);
 
   if (isNaN(chapterNumber)) {
@@ -83,7 +87,7 @@ export async function generateMetadata(
 }
 
 export default async function ChapterPage({ params }: Props) {
-  const { slug: storySlug, "chuong-slug": chapterSlug } = params;
+  const { slug: storySlug, "chuong-slug": chapterSlug } = await params;
   const chapterNumber = parseInt(chapterSlug, 10);
 
   if (isNaN(chapterNumber)) {
@@ -168,14 +172,11 @@ export default async function ChapterPage({ params }: Props) {
         />
       </div>
 
-      {/* Chapter Content */}
+      {/* Chapter Content with Advertisement Wrapper */}
       <div className="w-full pb-16 sm:pb-0 min-h-screen">
-        <div
-          id="chapter-content"
-          className="chapter-content-text chapter-content"
-          dangerouslySetInnerHTML={{
-            __html: chapter.content,
-          }}
+        <ChapterContentWrapper
+          content={chapter.content}
+          chapterNumber={chapterNumber}
         />
       </div>
 

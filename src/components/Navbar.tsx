@@ -2,28 +2,17 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { NAV_LINKS, APP_CONFIG } from "@/lib/config";
 import DarkModeToggle from "./DarkModeToggle";
-import SearchIcon from "./icons/SearchIcon";
+import SearchInput from "./SearchInput";
 import MenuIcon from "./icons/MenuIcon";
 import XIcon from "./icons/XIcon";
 import BookOpenIcon from "./icons/BookOpenIcon";
 
 const Navbar: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const router = useRouter();
   const pathname = usePathname();
-
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      router.push(`/tim-kiem?q=${encodeURIComponent(searchTerm.trim())}`);
-      setSearchTerm("");
-      setIsMobileMenuOpen(false);
-    }
-  };
 
   const isActive = (path: string) => {
     if (path === "/" && pathname !== "/") {
@@ -76,26 +65,9 @@ const Navbar: React.FC = () => {
         </div>
 
         <div className="navbar-end">
-          <form
-            onSubmit={handleSearch}
-            className="hidden sm:flex items-center mr-2"
-          >
-            <div className="join">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm truyện..."
-                className="input input-bordered input-sm join-item w-64"
-              />
-              <button
-                type="submit"
-                className="btn btn-primary btn-sm join-item"
-              >
-                <SearchIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
+          <div className="hidden sm:block mr-2">
+            <SearchInput size="sm" className="w-64" />
+          </div>
           <DarkModeToggle />
         </div>
       </div>
@@ -117,23 +89,11 @@ const Navbar: React.FC = () => {
             ))}
           </ul>
           <div className="px-4 py-3 border-t border-base-300">
-            <form onSubmit={handleSearch} className="flex items-center">
-              <div className="join w-full">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Tìm truyện..."
-                  className="input input-bordered input-sm join-item w-full"
-                />
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-sm join-item"
-                >
-                  <SearchIcon className="h-4 w-4" />
-                </button>
-              </div>
-            </form>
+            <SearchInput
+              size="sm"
+              placeholder="Tìm truyện..."
+              onSearch={() => setIsMobileMenuOpen(false)}
+            />
           </div>
         </div>
       )}

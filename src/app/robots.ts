@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: "/api/",
     },
-    sitemap: "https://yourdomain.com/sitemap.xml",
+    sitemap: "https://doctruyenfull.io.vn/sitemap.xml",
   };
 }

@@ -3,25 +3,25 @@ import { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: "https://yourdomain.com",
+      url: "https://doctruyenfull.io.vn",
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 1,
     },
     {
-      url: "https://yourdomain.com/truyen",
+      url: "https://doctruyenfull.io.vn/truyen",
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.8,
     },
     {
-      url: "https://yourdomain.com/the-loai",
+      url: "https://doctruyenfull.io.vn/the-loai",
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.7,
     },
     {
-      url: "https://yourdomain.com/bang-xep-hang",
+      url: "https://doctruyenfull.io.vn/bang-xep-hang",
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.6,

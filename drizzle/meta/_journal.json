@@ -15,6 +15,34 @@
       "when": 1749301524859,
       "tag": "0001_military_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1749458892567,
+      "tag": "0002_perfect_luckman",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1749469551713,
+      "tag": "0003_cute_retro_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1749480492712,
+      "tag": "0004_nasty_robin_chapel",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1749487654492,
+      "tag": "0005_breezy_nomad",
+      "breakpoints": true
     }
   ]
 }

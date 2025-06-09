@@ -18,19 +18,32 @@ async function main() {
 
     console.log(`Looking for migration files in: ${migrationsFolder}`);
 
-    // Check if the migration file exists
-    const migrationFile = path.join(
-      migrationsFolder,
-      "0001_military_naoko.sql"
-    );
-    if (!fs.existsSync(migrationFile)) {
-      console.error(`Migration file not found: ${migrationFile}`);
+    // Get the latest migration file
+    const migrationFiles = fs
+      .readdirSync(migrationsFolder)
+      .filter((file) => file.endsWith(".sql"))
+      .sort(); // Sort to get in order
+
+    if (migrationFiles.length === 0) {
+      console.error("No migration files found");
       process.exit(1);
     }
 
+    const latestMigration = migrationFiles[migrationFiles.length - 1];
+    const migrationFile = path.join(migrationsFolder, latestMigration);
+
+    console.log(`Applying migration: ${latestMigration}`);
+
     // Read the SQL content
-    const sql = fs.readFileSync(migrationFile, "utf8");
-    console.log(`Executing SQL: ${sql}`);
+    const sqlContent = fs.readFileSync(migrationFile, "utf8");
+
+    // Split SQL at statement-breakpoint markers
+    const statements = sqlContent
+      .split("--> statement-breakpoint")
+      .map((statement) => statement.trim())
+      .filter((statement) => statement.length > 0);
+
+    console.log(`Found ${statements.length} SQL statements to execute`);
 
     // Create a direct client connection
     const client = createClient({
@@ -38,8 +51,11 @@ async function main() {
       authToken: process.env.DATABASE_AUTH_TOKEN,
     });
 
-    // Execute the SQL
-    await client.execute(sql);
+    // Execute each SQL statement separately
+    for (const sql of statements) {
+      console.log(`Executing SQL:\n${sql}`);
+      await client.execute(sql);
+    }
 
     console.log("Migration completed successfully");
   } catch (error) {

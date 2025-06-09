@@ -6,8 +6,8 @@
 // Cấu hình phân trang
 export const PAGINATION = {
   CHAPTERS_PER_PAGE: 10,
-  STORIES_PER_PAGE: 10,
-  LATEST_CHAPTERS_HOME_COUNT: 5,
+  STORIES_PER_PAGE: 30,
+  LATEST_CHAPTERS_HOME_COUNT: 10,
   FEATURED_STORIES_HOME_COUNT: 6,
 };
 
@@ -16,6 +16,8 @@ export const NAV_LINKS = [
   { label: "Trang Chủ", path: "/" },
   { label: "Thể Loại", path: "/the-loai" },
   { label: "Hoàn Thành", path: "/truyen-full" },
+  { label: "Xuất Bản", path: "/xuat-ban" },
+  { label: "Ebook", path: "/ebook" },
   { label: "Lịch Sử", path: "/lich-su" },
 ];
 

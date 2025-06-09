@@ -7,6 +7,11 @@ import { join } from "path";
 import { randomUUID } from "crypto";
 import { existsSync } from "fs";
 import { eq } from "drizzle-orm";
+import {
+  revalidateStory,
+  revalidateGenres,
+  revalidateCompletedStories,
+} from "@/app/actions";
 
 // GET: Fetch a single novel by ID
 export async function GET(
@@ -35,7 +40,13 @@ export async function GET(
       return NextResponse.json({ error: "Novel not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ novel });
+    // Map the database 'genres' field to both 'genres' and 'genre' for backward compatibility
+    return NextResponse.json({
+      novel: {
+        ...novel,
+        genre: novel.genres,
+      },
+    });
   } catch (error) {
     console.error("Error fetching novel:", error);
     return NextResponse.json(
@@ -81,6 +92,7 @@ export async function PUT(
     const description = formData.get("description") as string;
     const genre = formData.get("genre") as string;
     const keywords = formData.get("keywords") as string;
+    const youtubeEmbed = formData.get("youtubeEmbed") as string;
 
     // Combine genre and keywords into genres field
     let genres = genre || "";
@@ -139,12 +151,24 @@ export async function PUT(
         description,
         coverImage: coverImagePath,
         genres,
+        youtubeEmbed: youtubeEmbed || null,
         status:
           status === "paused" ? "ongoing" : (status as "ongoing" | "completed"),
         updatedAt: Math.floor(Date.now() / 1000),
       })
       .where(eq(stories.id, id))
       .returning();
+
+    // Revalidate the story pages
+    await revalidateStory(slug);
+
+    // If genres were updated, revalidate genre pages
+    await revalidateGenres();
+
+    // If status is completed, revalidate completed stories page
+    if (status === "completed") {
+      await revalidateCompletedStories();
+    }
 
     return NextResponse.json({
       message: "Novel updated successfully",

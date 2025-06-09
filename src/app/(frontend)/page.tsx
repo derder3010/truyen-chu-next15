@@ -5,7 +5,14 @@ import { PAGINATION, APP_CONFIG } from "@/lib/config";
 import { Story } from "@/types";
 import FeaturedStories from "@/components/FeaturedStories";
 import LatestChapters from "@/components/LatestChapters";
-import { getFeaturedStories, getLatestChapters } from "@/lib/api";
+import FeaturedLicensedStories from "@/components/FeaturedLicensedStories";
+import FeaturedEbooks from "@/components/FeaturedEbooks";
+import {
+  getFeaturedStories,
+  getLatestChapters,
+  getFeaturedLicensedStories,
+  getFeaturedEbooks,
+} from "@/lib/api";
 
 // Metadata tĩnh cho trang chủ
 export const metadata: Metadata = {
@@ -50,6 +57,10 @@ export default async function HomePage() {
   const latestChapters = await getLatestChapters(
     PAGINATION.LATEST_CHAPTERS_HOME_COUNT
   );
+
+  // Fetch licensed stories and ebooks
+  const licensedStories = await getFeaturedLicensedStories(6);
+  const ebooks = await getFeaturedEbooks(6);
 
   // Create a function to get story by slug from the latest chapters
   const getStoryBySlug = (slug: string): Story | undefined => {
@@ -108,6 +119,14 @@ export default async function HomePage() {
           chapters={latestChapters}
           getStoryBySlug={getStoryBySlug}
         />
+
+        {/* Truyện Xuất Bản */}
+        {licensedStories.length > 0 && (
+          <FeaturedLicensedStories stories={licensedStories} />
+        )}
+
+        {/* Ebook */}
+        {ebooks.length > 0 && <FeaturedEbooks stories={ebooks} />}
       </div>
     </div>
   );

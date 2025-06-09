@@ -1,0 +1,1 @@
+ALTER TABLE `stories` ADD `youtube_embed` text;

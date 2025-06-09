@@ -11,6 +11,7 @@ export async function middleware(request: NextRequest) {
   const isAdminPath = request.nextUrl.pathname.startsWith("/admin");
   const isLoginPath = request.nextUrl.pathname.startsWith("/login");
   const isErrorPath = request.nextUrl.pathname.startsWith("/admin/error");
+  const isApiAdminPath = request.nextUrl.pathname.startsWith("/api/admin");
   const isApiAuthPath = request.nextUrl.pathname.startsWith("/api/auth");
 
   // Kiểm tra nếu đã đăng nhập (có token) mà truy cập trang login
@@ -32,8 +33,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If it's an admin path, check token
-  if (isAdminPath) {
+  // If it's an admin path or admin API, check token
+  if (isAdminPath || isApiAdminPath) {
     console.log("Admin path, checking token");
 
     try {
@@ -61,7 +62,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all request paths except for static assets and API auth
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    // Middleware chỉ áp dụng cho admin UI, admin API và xác thực
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/api/auth/:path*",
+    "/login",
   ],
 };

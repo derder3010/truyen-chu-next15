@@ -5,6 +5,9 @@ import StoryClientPage from "@/components/StoryClientPage";
 import { getStoryBySlug, getChaptersByStoryId } from "@/lib/api";
 import { PAGINATION } from "@/lib/config";
 
+// Add ISR with 2-hour revalidation
+export const revalidate = 7200; // 2 hours in seconds
+
 type Props = {
   params: { slug: string };
   searchParams: { page?: string };
@@ -15,7 +18,7 @@ export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const { slug } = params;
+  const { slug } = await params;
 
   // Get story data from the database
   const story = await getStoryBySlug(slug);
@@ -61,8 +64,8 @@ export async function generateMetadata(
 }
 
 export default async function StoryDetailPage({ params, searchParams }: Props) {
-  const { slug } = params;
-  const pageParam = searchParams.page;
+  const { slug } = await params;
+  const pageParam = (await searchParams).page;
   const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
 
   // Get data from the database

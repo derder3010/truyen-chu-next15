@@ -3,7 +3,10 @@ import { Metadata } from "next";
 import { APP_CONFIG, PAGINATION } from "@/lib/config";
 import StoryCard from "@/components/StoryCard";
 import { getStories } from "@/lib/api";
-import Pagination from "@/components/Pagination";
+import PaginationServer from "@/components/PaginationServer";
+
+// Add ISR with 2-hour revalidation
+export const revalidate = 7200; // 2 hours in seconds
 
 // Metadata cho trang truyện full
 export const metadata: Metadata = {
@@ -68,10 +71,10 @@ export default async function FullStoriesPage({ searchParams }: Props) {
 
           {pagination.totalPages > 1 && (
             <div className="flex justify-center mt-6">
-              <Pagination
+              <PaginationServer
                 currentPage={currentPage}
                 totalPages={pagination.totalPages}
-                onPageChange={() => {}} // Chỉ để thỏa mãn props interface
+                basePath="/truyen-full"
               />
             </div>
           )}

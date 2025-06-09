@@ -4,9 +4,13 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "~image";
+import useSWR from "swr";
 import NotFoundPage from "@/app/NotFound";
 import Pagination from "@/components/Pagination";
 import { Chapter, Story } from "@/types";
+
+// Fetcher function for SWR
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface PaginationData {
   total: number;
@@ -24,8 +28,8 @@ interface StoryClientPageProps {
 
 export default function StoryClientPage({
   story,
-  chapters,
-  pagination,
+  chapters: initialChapters,
+  pagination: initialPagination,
   currentPage,
 }: StoryClientPageProps) {
   const router = useRouter();
@@ -35,6 +39,23 @@ export default function StoryClientPage({
   if (!story) {
     return <NotFoundPage />;
   }
+
+  // Fetch chapters using SWR
+  const { data, error, isLoading } = useSWR(
+    `/api/chapters?storyId=${story.id}&page=${currentPage}`,
+    fetcher,
+    {
+      fallbackData: {
+        chapters: initialChapters,
+        pagination: initialPagination,
+      },
+      revalidateOnFocus: false,
+      dedupingInterval: 300000, // 5 phút cache
+    }
+  );
+
+  const chapters = data?.chapters || initialChapters;
+  const pagination = data?.pagination || initialPagination;
 
   const handlePageChange = (page: number) => {
     // Navigate to the same page with a different page parameter
@@ -125,13 +146,27 @@ export default function StoryClientPage({
                     {story.status}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-base-content/70">Thể loại:</span>
-                  <span className="font-medium text-right">
-                    {story.genres.length > 0
-                      ? story.genres.join(", ")
-                      : "Chưa phân loại"}
-                  </span>
+                <div className="flex flex-col">
+                  <span className="text-base-content/70 mb-1">Thể loại:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {story.genres && story.genres.length > 0 ? (
+                      story.genres.map((genre: string) => (
+                        <Link
+                          key={genre}
+                          href={`/the-loai/?tag=${encodeURIComponent(
+                            genre.toLowerCase()
+                          )}`}
+                          className="badge badge-outline hover:badge-primary transition-colors"
+                        >
+                          {genre}
+                        </Link>
+                      ))
+                    ) : (
+                      <span className="text-base-content/50">
+                        Chưa phân loại
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-base-content/70">Lượt xem:</span>
@@ -148,6 +183,20 @@ export default function StoryClientPage({
               </div>
             </div>
           </div>
+
+          {/* YouTube embed card in left column */}
+          {story.youtubeEmbed && (
+            <div className="card bg-base-100 shadow-lg mt-6">
+              <div className="card-body">
+                <h2 className="card-title mb-2">Nghe audio trên YouTube</h2>
+                <div className="youtube-embed-container w-full overflow-hidden rounded-lg">
+                  <div
+                    dangerouslySetInnerHTML={{ __html: story.youtubeEmbed }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="md:col-span-2">
@@ -226,7 +275,7 @@ export default function StoryClientPage({
                   <div className="overflow-x-auto">
                     <table className="table table-zebra w-full">
                       <tbody>
-                        {chapters.map((chapter) => (
+                        {chapters.map((chapter: Chapter) => (
                           <tr key={chapter.id} className="hover:bg-base-200">
                             <td>
                               <Link
@@ -263,4 +312,32 @@ export default function StoryClientPage({
       </div>
     </div>
   );
+}
+
+// Add CSS at the bottom of the file
+const styles = `
+  /* YouTube embed responsive styling */
+  .youtube-embed-container {
+    position: relative;
+  }
+
+  .youtube-embed-container iframe {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    border-radius: 0.5rem;
+  }
+`;
+
+// Inject the styles
+if (typeof document !== "undefined") {
+  // Only run on client side
+  const styleEl = document.createElement("style");
+  styleEl.id = "youtube-embed-styles";
+  styleEl.innerHTML = styles;
+
+  // Check if style already exists before adding
+  if (!document.getElementById("youtube-embed-styles")) {
+    document.head.appendChild(styleEl);
+  }
 }

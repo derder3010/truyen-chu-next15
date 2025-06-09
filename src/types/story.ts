@@ -11,6 +11,7 @@ export interface Story {
   rating: number; // e.g., 4.5
   lastUpdated: string; // ISO date string or human-readable
   slug: string;
+  youtubeEmbed?: string; // Optional YouTube iframe embed code
 }
 
 export enum StoryStatus {

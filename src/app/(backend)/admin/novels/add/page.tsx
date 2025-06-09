@@ -34,10 +34,10 @@ export default function AddNovelPage() {
   const [slug, setSlug] = useState("");
   const [author, setAuthor] = useState("");
   const [status, setStatus] = useState("ongoing");
-  const [genre, setGenre] = useState("fantasy");
+  const [genre, setGenre] = useState("");
   const [description, setDescription] = useState("");
+  const [youtubeEmbed, setYoutubeEmbed] = useState("");
   const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [keywords, setKeywords] = useState("");
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState(false);
   const router = useRouter();
@@ -75,7 +75,7 @@ export default function AddNovelPage() {
       formData.append("status", status);
       formData.append("genre", genre);
       formData.append("description", description);
-      formData.append("keywords", keywords);
+      formData.append("youtubeEmbed", youtubeEmbed);
       if (coverImage) {
         formData.append("coverImage", coverImage);
       }
@@ -248,16 +248,18 @@ export default function AddNovelPage() {
                   <label className="label">
                     <span className="label-text">Thể loại</span>
                   </label>
-                  <select
-                    className="select select-bordered w-full mt-2"
+                  <input
+                    type="text"
+                    className="input input-bordered w-full mt-2"
+                    placeholder="Nhập thể loại, phân cách bởi dấu phẩy"
                     value={genre}
                     onChange={(e) => setGenre(e.target.value)}
-                  >
-                    <option value="fantasy">Huyễn tưởng</option>
-                    <option value="martial">Võ hiệp</option>
-                    <option value="romance">Tình cảm</option>
-                    <option value="horror">Kinh dị</option>
-                  </select>
+                  />
+                  <label className="label mt-2">
+                    <span className="label-text-alt">
+                      Ví dụ: huyền huyễn, tu tiên, xuyên không
+                    </span>
+                  </label>
                 </div>
 
                 <div className="form-control w-full">
@@ -287,18 +289,17 @@ export default function AddNovelPage() {
 
                 <div className="form-control w-full">
                   <label className="label">
-                    <span className="label-text">Từ khóa</span>
+                    <span className="label-text">YouTube Embed</span>
                   </label>
-                  <input
-                    type="text"
-                    className="input input-bordered w-full mt-2"
-                    placeholder="Nhập từ khóa, phân cách bởi dấu phẩy"
-                    value={keywords}
-                    onChange={(e) => setKeywords(e.target.value)}
-                  />
+                  <textarea
+                    className="textarea textarea-bordered h-24 w-full mt-2 font-mono text-sm"
+                    placeholder='<iframe width="560" height="315" src="https://www.youtube.com/embed/..." frameborder="0" allowfullscreen></iframe>'
+                    value={youtubeEmbed}
+                    onChange={(e) => setYoutubeEmbed(e.target.value)}
+                  ></textarea>
                   <label className="label mt-2">
                     <span className="label-text-alt">
-                      Ví dụ: huyền huyễn, tu tiên, xuyên không
+                      Dán mã iframe từ YouTube (tùy chọn)
                     </span>
                   </label>
                 </div>

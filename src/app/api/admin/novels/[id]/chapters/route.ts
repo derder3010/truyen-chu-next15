@@ -4,6 +4,7 @@ import { chapters, stories } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth/server";
 import { eq, desc, asc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { revalidateChapter } from "@/app/actions";
 
 // GET: Fetch all chapters for a novel
 export async function GET(
@@ -189,6 +190,16 @@ export async function POST(
       .update(stories)
       .set({ updatedAt: Math.floor(Date.now() / 1000) })
       .where(eq(stories.id, novelId));
+
+    // Get the story slug for revalidation
+    const story = await db.query.stories.findFirst({
+      where: eq(stories.id, novelId),
+    });
+
+    if (story) {
+      // Revalidate both the story and new chapter pages
+      await revalidateChapter(story.slug, chapterNumber);
+    }
 
     return NextResponse.json({
       message: "Chapter added successfully",

@@ -4,14 +4,19 @@ import { APP_CONFIG, PAGINATION } from "@/lib/config";
 import CategoryClientPage from "@/components/CategoryClientPage";
 import { getGenres, getStories } from "@/lib/api";
 
+// Add ISR with 2-hour revalidation
+export const revalidate = 7200; // 2 hours in seconds
+
 // Generate metadata cho trang thể loại
 export async function generateMetadata({
   searchParams,
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }): Promise<Metadata> {
+  // Parse searchParams safely
+  const searchParamsData = await Promise.resolve(searchParams);
   const selectedGenre =
-    typeof searchParams.tag === "string" ? searchParams.tag : undefined;
+    typeof searchParamsData.tag === "string" ? searchParamsData.tag : undefined;
 
   // Lấy danh sách thể loại từ API
   const genres = await getGenres();
@@ -59,10 +64,14 @@ export default async function CategoryPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
+  // Parse searchParams safely
+  const searchParamsData = await Promise.resolve(searchParams);
   const tag =
-    typeof searchParams.tag === "string" ? searchParams.tag : undefined;
+    typeof searchParamsData.tag === "string" ? searchParamsData.tag : undefined;
   const pageParam =
-    typeof searchParams.page === "string" ? searchParams.page : undefined;
+    typeof searchParamsData.page === "string"
+      ? searchParamsData.page
+      : undefined;
   const currentPage = pageParam ? parseInt(pageParam, 10) : 1;
 
   // Lấy danh sách thể loại từ API

@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Livvic } from "next/font/google";
 import "@/app/globals.css";
 import { Providers } from "@/components/Providers";
-import { SessionProvider } from "@/components/SessionProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -20,7 +19,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://yourdomain.com"),
+  metadataBase: new URL("https://doctruyenfull.io.vn"),
   title: {
     template: "%s | Doctruyenfull.vn",
     default: "Doctruyenfull.vn - Đọc truyện chữ online",
@@ -52,13 +51,13 @@ export const metadata: Metadata = {
     title: "Doctruyenfull.vn - Đọc truyện chữ online",
     description:
       "Đọc truyện online, truyện hay cập nhật liên tục. Mang đến trải nghiệm đọc truyện tốt nhất.",
-    url: "https://yourdomain.com",
+    url: "https://doctruyenfull.io.vn",
     siteName: "Doctruyenfull.vn",
     locale: "vi_VN",
     type: "website",
     images: [
       {
-        url: "https://yourdomain.com/og-image.jpg",
+        url: "https://doctruyenfull.io.vn/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Doctruyenfull.vn - Đọc truyện chữ online",
@@ -70,7 +69,7 @@ export const metadata: Metadata = {
     title: "Doctruyenfull.vn - Đọc truyện chữ online",
     description:
       "Đọc truyện online, truyện hay cập nhật liên tục. Mang đến trải nghiệm đọc truyện tốt nhất.",
-    images: ["https://yourdomain.com/twitter-image.jpg"],
+    images: ["https://doctruyenfull.io.vn/twitter-image.jpg"],
     creator: "@truyencv",
   },
   icons: {
@@ -102,28 +101,21 @@ export default async function ClientLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Có thể thực hiện các tác vụ async ở đây như:
-  // - Kiểm tra trạng thái xác thực người dùng
-  // - Lấy dữ liệu chung cho toàn bộ ứng dụng
-  // - Chuẩn bị các cài đặt toàn cục
-
   return (
     <html lang="vi" suppressHydrationWarning className={livvic.variable}>
       <body
         className="antialiased min-h-screen bg-base-200"
         suppressHydrationWarning
       >
-        <SessionProvider>
-          <Providers>
-            <div className="bg-gradient-to-b from-base-300/50 to-transparent min-h-screen">
-              <main>
-                {children}
-                <SpeedInsights />
-                <Analytics />
-              </main>
-            </div>
-          </Providers>
-        </SessionProvider>
+        <Providers>
+          <div className="bg-gradient-to-b from-base-300/50 to-transparent min-h-screen">
+            <main>
+              {children}
+              <SpeedInsights />
+              <Analytics />
+            </main>
+          </div>
+        </Providers>
       </body>
     </html>
   );

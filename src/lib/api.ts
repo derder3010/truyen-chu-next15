@@ -18,6 +18,7 @@ interface DbStoryResult {
   viewCount: number | null;
   createdAt: number | null;
   updatedAt: number | null;
+  youtubeEmbed: string | null;
 }
 
 interface DbChapterResult {
@@ -55,6 +56,7 @@ function formatStory(dbStory: DbStoryResult): Story {
       ? new Date(dbStory.updatedAt * 1000).toLocaleDateString("vi-VN")
       : new Date().toLocaleDateString("vi-VN"),
     slug: dbStory.slug,
+    youtubeEmbed: dbStory.youtubeEmbed || "",
   };
 }
 
@@ -337,5 +339,57 @@ export async function getGenres() {
   } catch (error) {
     console.error("Error fetching genres:", error);
     throw new Error("Failed to fetch genres");
+  }
+}
+
+// Server action to get featured licensed stories for homepage
+export async function getFeaturedLicensedStories(count = 6) {
+  try {
+    const response = await fetch(
+      `${
+        process.env.NEXTAUTH_URL ||
+        process.env.VERCEL_URL ||
+        "http://localhost:3000"
+      }/api/licensed-stories?limit=${count}`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch licensed stories");
+    }
+
+    const data = await response.json();
+    return data.stories || [];
+  } catch (error) {
+    console.error("Error fetching featured licensed stories:", error);
+    return [];
+  }
+}
+
+// Server action to get featured ebooks for homepage
+export async function getFeaturedEbooks(count = 6) {
+  try {
+    const response = await fetch(
+      `${
+        process.env.NEXTAUTH_URL ||
+        process.env.VERCEL_URL ||
+        "http://localhost:3000"
+      }/api/ebooks?limit=${count}`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch ebooks");
+    }
+
+    const data = await response.json();
+    return data.stories || [];
+  } catch (error) {
+    console.error("Error fetching featured ebooks:", error);
+    return [];
   }
 }

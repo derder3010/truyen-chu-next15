@@ -44,33 +44,33 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="stats shadow bg-primary text-primary-content">
+        <div className="stats shadow bg-base-100 text-primary-content font-bold">
           <div className="stat">
-            <div className="stat-title opacity-80">Truyện</div>
+            <div className="stat-title text-lg">Truyện</div>
             <div className="stat-value">0</div>
             <div className="stat-desc opacity-70">Tổng số truyện</div>
           </div>
         </div>
 
-        <div className="stats shadow bg-secondary text-secondary-content">
+        <div className="stats shadow bg-base-100 text-secondary-content font-bold">
           <div className="stat">
-            <div className="stat-title opacity-80">Lượt xem</div>
+            <div className="stat-title text-lg">Lượt xem</div>
             <div className="stat-value">0</div>
             <div className="stat-desc opacity-70">Tổng số lượt xem</div>
           </div>
         </div>
 
-        <div className="stats shadow bg-accent text-accent-content">
+        <div className="stats shadow bg-base-100 text-accent-content font-bold">
           <div className="stat">
-            <div className="stat-title opacity-80">Chương</div>
+            <div className="stat-title text-lg">Chương</div>
             <div className="stat-value">0</div>
             <div className="stat-desc opacity-70">Tổng số chương</div>
           </div>
         </div>
 
-        <div className="stats shadow bg-base-100 border border-base-300">
+        <div className="stats shadow bg-base-100 border border-base-300 font-bold">
           <div className="stat">
-            <div className="stat-title">Người dùng</div>
+            <div className="stat-title text-lg">Người dùng</div>
             <div className="stat-value">1</div>
             <div className="stat-desc text-base-content/70">
               Tổng số quản trị viên

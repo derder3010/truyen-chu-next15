@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import useSWR from "swr";
 import StoryCard from "@/components/StoryCard";
 import { Story } from "@/types";
 import TagIcon from "@/components/icons/TagIcon";
 import Pagination from "./Pagination";
+
+// Fetcher function for SWR
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface CategoryClientPageProps {
   initialStories: Story[];
@@ -22,7 +26,7 @@ interface CategoryClientPageProps {
 const CategoryClientPage: React.FC<CategoryClientPageProps> = ({
   initialStories,
   genres,
-  pagination,
+  pagination: initialPagination,
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -30,12 +34,25 @@ const CategoryClientPage: React.FC<CategoryClientPageProps> = ({
   const currentPage = searchParams.get("page")
     ? parseInt(searchParams.get("page") || "1", 10)
     : 1;
-  const [stories, setStories] = useState<Story[]>(initialStories);
 
-  // Cập nhật stories khi có thay đổi từ props
-  useEffect(() => {
-    setStories(initialStories);
-  }, [initialStories]);
+  // Sử dụng SWR để fetch dữ liệu theo thể loại và trang
+  const { data, error, isLoading } = useSWR(
+    `/api/genres?${
+      selectedGenre ? `tag=${encodeURIComponent(selectedGenre)}&` : ""
+    }page=${currentPage}`,
+    fetcher,
+    {
+      fallbackData: {
+        stories: initialStories,
+        pagination: initialPagination,
+      },
+      revalidateOnFocus: false,
+      dedupingInterval: 300000, // 5 phút cache
+    }
+  );
+
+  const stories = data?.stories || initialStories;
+  const pagination = data?.pagination || initialPagination;
 
   const handlePageChange = (page: number) => {
     // Chuyển hướng đến trang mới với thể loại được chọn (nếu có)
@@ -85,10 +102,18 @@ const CategoryClientPage: React.FC<CategoryClientPageProps> = ({
         </div>
       </div>
 
-      {stories.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="loading loading-spinner loading-lg text-primary"></div>
+        </div>
+      ) : error ? (
+        <div className="alert alert-error">
+          <span>Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại sau.</span>
+        </div>
+      ) : stories.length > 0 ? (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-            {stories.map((story) => (
+            {stories.map((story: Story) => (
               <StoryCard key={story.id} story={story} />
             ))}
           </div>

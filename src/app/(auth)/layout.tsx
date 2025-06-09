@@ -1,7 +1,13 @@
+import { SessionProvider } from "@/components/SessionProvider";
+
 export default async function AuthLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <div className="">{children}</div>;
+  return (
+    <SessionProvider>
+      <div className="">{children}</div>
+    </SessionProvider>
+  );
 }

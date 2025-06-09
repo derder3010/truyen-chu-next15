@@ -4,6 +4,20 @@ import { Suspense, useState, useEffect } from "react";
 import { UserInfo } from "@/components/admin/UserInfo";
 import { Sidebar } from "@/components/admin/Sidebar";
 import { useSession } from "@/lib/auth/client";
+import { SessionProvider } from "@/components/SessionProvider";
+
+const adminNavItems = [
+  { label: "Dashboard", href: "/admin", icon: "dashboard" },
+  { label: "Truyện", href: "/admin/novels", icon: "book" },
+  {
+    label: "Truyện bản quyền",
+    href: "/admin/licensed-stories",
+    icon: "license",
+  },
+  { label: "Ebooks", href: "/admin/ebooks", icon: "book-open" },
+  { label: "Quảng cáo", href: "/admin/ads", icon: "ads" },
+  { label: "Người dùng", href: "/admin/users", icon: "users" },
+];
 
 function HeaderClient({ toggleSidebar }: { toggleSidebar: () => void }) {
   return (
@@ -62,35 +76,37 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <Suspense fallback={<div className="h-16 bg-base-100 shadow-sm" />}>
-        <HeaderClient toggleSidebar={toggleSidebar} />
-      </Suspense>
+    <SessionProvider>
+      <div className="min-h-screen bg-base-200">
+        <Suspense fallback={<div className="h-16 bg-base-100 shadow-sm" />}>
+          <HeaderClient toggleSidebar={toggleSidebar} />
+        </Suspense>
 
-      <div className="drawer lg:drawer-open">
-        <input
-          id="admin-drawer"
-          type="checkbox"
-          className="drawer-toggle"
-          checked={isMounted && isSidebarOpen}
-          onChange={toggleSidebar}
-        />
-        <div className="drawer-content flex flex-col">
-          <main className="flex-1 mx-auto w-full max-w-6xl p-4 lg:p-6">
-            {children}
-          </main>
-        </div>
-        <div className="drawer-side z-10">
-          <label
-            htmlFor="admin-drawer"
-            aria-label="close sidebar"
-            className="drawer-overlay"
-          ></label>
-          <div className="bg-base-100 min-h-screen border-r border-base-300">
-            <Sidebar />
+        <div className="drawer lg:drawer-open">
+          <input
+            id="admin-drawer"
+            type="checkbox"
+            className="drawer-toggle"
+            checked={isMounted && isSidebarOpen}
+            onChange={toggleSidebar}
+          />
+          <div className="drawer-content flex flex-col">
+            <main className="flex-1 mx-auto w-full max-w-6xl p-4 lg:p-6">
+              {children}
+            </main>
+          </div>
+          <div className="drawer-side z-10">
+            <label
+              htmlFor="admin-drawer"
+              aria-label="close sidebar"
+              className="drawer-overlay"
+            ></label>
+            <div className="bg-base-100 min-h-screen border-r border-base-300">
+              <Sidebar />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </SessionProvider>
   );
 }

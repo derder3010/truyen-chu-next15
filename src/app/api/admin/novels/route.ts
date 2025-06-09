@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
     const description = formData.get("description") as string;
     const genre = formData.get("genre") as string;
     const keywords = formData.get("keywords") as string;
+    const youtubeEmbed = formData.get("youtubeEmbed") as string;
 
     // Combine genre and keywords into genres field
     let genres = genre || "";
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Insert the novel into the database - using only fields that exist in the schema
+    // Insert the novel into the database
     const newNovel = await db
       .insert(stories)
       .values({
@@ -144,8 +145,12 @@ export async function POST(request: NextRequest) {
         author,
         description,
         coverImage: coverImagePath,
-        genres,
-        status: status as "ongoing" | "completed",
+        genres: genre || null,
+        youtubeEmbed: youtubeEmbed || null,
+        status:
+          status === "paused" ? "ongoing" : (status as "ongoing" | "completed"),
+        createdAt: Math.floor(Date.now() / 1000),
+        updatedAt: Math.floor(Date.now() / 1000),
       })
       .returning();
 
