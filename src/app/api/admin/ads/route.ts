@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { advertisements } from "@/lib/db/schema";
-import { eq, like, desc, asc, and, or } from "drizzle-orm";
+import { eq, like, desc, and, or } from "drizzle-orm";
 import { getSession } from "@/lib/auth/server";
 
 export async function GET(request: NextRequest) {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build query conditions
-    let conditions = [];
+    const conditions = [];
 
     // Add status filter if provided
     if (status) {
@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
       affiliateUrl: body.affiliateUrl,
       displayFrequency: body.displayFrequency || 3,
       isActive: body.isActive !== undefined ? body.isActive : true,
+      type: body.type || "in-chapter",
       createdAt: Math.floor(Date.now() / 1000),
       updatedAt: Math.floor(Date.now() / 1000),
     });

@@ -10,6 +10,7 @@ interface Advertisement {
   description: string;
   imageUrl: string;
   affiliateUrl: string;
+  type?: string;
 }
 
 interface AdvertisementBannerProps {
@@ -72,6 +73,24 @@ const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
 
   // No ad to display
   if (!isLoading && !ad) {
+    // Check if user has recently viewed ads
+    const viewedAdsCookie =
+      typeof document !== "undefined"
+        ? document.cookie
+            .split("; ")
+            .find((row) => row.startsWith("viewed_ads="))
+        : null;
+
+    if (viewedAdsCookie) {
+      return (
+        <div className="w-full bg-base-100 border border-base-300 rounded-lg my-6 p-4 text-center">
+          <p className="text-sm text-base-content/70">
+            Bạn đã xem quảng cáo trong vòng 24 giờ qua, nội dung chương sẽ hiển
+            thị ngay lập tức.
+          </p>
+        </div>
+      );
+    }
     return null;
   }
 
@@ -83,7 +102,7 @@ const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
   // Loading state
   if (isLoading) {
     return (
-      <div className="w-full h-[120px] bg-base-200 animate-pulse rounded-lg my-6"></div>
+      <div className="w-full h-[350px] bg-base-200 animate-pulse rounded-lg my-6"></div>
     );
   }
 
@@ -99,24 +118,31 @@ const AdvertisementBanner: React.FC<AdvertisementBannerProps> = ({
         onClick={handleAdClick}
         className="block"
       >
-        <div className="flex flex-col md:flex-row items-center p-2 gap-4 hover:bg-base-300 transition-colors">
+        <div className="flex flex-col items-center p-3 gap-3 md:gap-6 hover:bg-base-300 transition-colors">
+          <h3 className="font-bold text-xl text-center mb-0 md:mb-1">
+            {ad.title}
+          </h3>
+
           {ad.imageUrl && (
-            <div className="relative w-full md:w-[200px] h-[120px]">
+            <div className="relative w-full h-[220px] md:h-[280px]">
               <Image
                 src={ad.imageUrl}
                 alt={ad.title}
                 fill
-                className="object-cover rounded"
-                sizes="(max-width: 768px) 100vw, 200px"
+                className="object-contain rounded"
+                sizes="100vw"
+                priority
               />
             </div>
           )}
 
-          <div className="flex-1 p-2">
-            <div className="text-xs text-base-content/60 mb-1">Quảng cáo</div>
-            <h3 className="font-bold text-lg">{ad.title}</h3>
-            <p className="text-sm text-base-content/80">{ad.description}</p>
-          </div>
+          {ad.description && (
+            <p className="text-base text-base-content/80 text-center mt-0 md:mt-1">
+              {ad.description}
+            </p>
+          )}
+
+          <div className="btn btn-primary mt-1 md:mt-3">Click để mở khóa</div>
         </div>
       </Link>
     </div>

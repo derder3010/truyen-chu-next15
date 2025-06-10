@@ -2,6 +2,7 @@ import "@/app/globals.css";
 import ScrollToTop from "@/components/ScrollToTop";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import HorizontalAdBanner from "@/components/HorizontalAdBanner";
 
 export default async function ClientLayout({
   children,
@@ -15,6 +16,7 @@ export default async function ClientLayout({
 
   return (
     <div>
+      <HorizontalAdBanner adType="priority" position="navbar" />
       <Navbar />
       <main>
         <div className="flex flex-col min-h-screen flex-grow container mx-auto px-4 py-8">
@@ -22,6 +24,7 @@ export default async function ClientLayout({
           {children}
         </div>
       </main>
+      <HorizontalAdBanner adType="banner" position="footer" />
       <Footer />
     </div>
   );

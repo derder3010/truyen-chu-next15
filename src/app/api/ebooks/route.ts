@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ebooks } from "@/lib/db/schema";
-import { eq, like, or, desc, asc, sql } from "drizzle-orm";
+import { eq, like, or, desc, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth/server";
 
 // GET /api/ebooks - Get all ebooks with pagination and filters
@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const tag = searchParams.get("tag");
 
     const offset = (page - 1) * limit;
 
@@ -34,6 +35,14 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.where(
         or(like(ebooks.title, likeSearch), like(ebooks.author, likeSearch))
       ) as any;
+    }
+
+    if (tag) {
+      // Tìm kiếm theo tag trong trường genres
+      // Vì genres là chuỗi nên chúng ta dùng like để tìm kiếm
+      const likeTag = `%${tag}%`;
+      query = query.where(like(ebooks.genres, likeTag)) as any;
+      countQuery = countQuery.where(like(ebooks.genres, likeTag)) as any;
     }
 
     // Apply pagination

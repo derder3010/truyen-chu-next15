@@ -87,6 +87,16 @@ export const advertisements = sqliteTable("advertisements", {
   clickCount: integer("click_count").default(0),
   isActive: integer("is_active", { mode: "boolean" }).default(true),
   displayFrequency: integer("display_frequency").default(3), // Hiển thị sau mỗi n chương
+  type: text("type", {
+    enum: [
+      "in-chapter",
+      "priority",
+      "banner",
+      "loading",
+      "ebook-waiting",
+      "other",
+    ],
+  }).default("in-chapter"),
   createdAt: integer("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });

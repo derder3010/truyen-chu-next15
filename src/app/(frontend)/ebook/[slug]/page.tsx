@@ -14,31 +14,30 @@ type Props = {
 // Custom function để lấy thông tin ebook theo slug
 async function getEbookBySlug(slug: string) {
   try {
-    // Lấy origin URL từ environment
-    const origin =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      (typeof window !== "undefined"
-        ? window.location.origin
-        : "http://localhost:3000");
+    // Import server-side API function
+    const { getEbookBySlug: fetchEbookBySlug } = await import("@/lib/api");
 
-    // Sử dụng API endpoint đúng format
-    const url = new URL(`/api/ebooks/${slug}`, origin);
+    // Get ebook data
+    const ebook = await fetchEbookBySlug(slug);
 
-    const response = await fetch(url.toString(), {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
+    if (!ebook) {
       return null;
     }
 
-    const data = await response.json();
+    // Format the response with correct types for BookItem
     return {
-      ...data.story,
-      genres: data.story.genres
-        ? data.story.genres.split(",").map((g: string) => g.trim())
-        : [],
-      purchaseLinks: data.story.purchaseLinks || [],
+      ...ebook,
+      // Format genres as array if it's a string
+      genres:
+        typeof ebook.genres === "string"
+          ? ebook.genres.split(",").map((g: string) => g.trim())
+          : ebook.genres || [],
+      // Ensure purchaseLinks exists
+      purchaseLinks: ebook.purchaseLinks || [],
+      // Fix null values to match expected types
+      coverImage: ebook.coverImage ?? undefined,
+      description: ebook.description ?? "",
+      status: ebook.status ?? "ongoing",
     };
   } catch (error) {
     console.error("Error fetching ebook:", error);

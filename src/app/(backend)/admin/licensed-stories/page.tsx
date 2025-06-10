@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AdminPageTitle } from "@/components/admin/AdminPageTitle";
 import { useSession } from "@/lib/auth/client";
 import Link from "next/link";
 import Image from "~image";

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/lib/auth/client";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "~image";
+import { getLicensedStoryBySlug, updateLicensedStory } from "@/lib/api";
 
 // Function to convert Vietnamese characters to non-accented
 function removeVietnameseAccents(str: string) {
@@ -26,26 +27,6 @@ function generateSlug(title: string, id: string) {
   // Use the ID as suffix for edit page
   return `${baseSlug}-${id}`;
 }
-
-type PurchaseLink = {
-  store: string;
-  url: string;
-};
-
-type LicensedStory = {
-  id: number;
-  title: string;
-  slug: string;
-  author: string;
-  description: string | null;
-  coverImage: string | null;
-  genres: string | null;
-  status: "ongoing" | "completed";
-  purchaseLinks: PurchaseLink[];
-  viewCount: number;
-  createdAt: number;
-  updatedAt: number;
-};
 
 export default function EditLicensedStoryPage() {
   const router = useRouter();
@@ -71,6 +52,46 @@ export default function EditLicensedStoryPage() {
     purchaseLinks: [{ store: "", url: "" }],
   });
 
+  // Define fetchStory with useCallback
+  const fetchStory = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      console.log("Fetching licensed story with slugOrId:", storySlug);
+
+      // Use the server action to get story by slug or id
+      const story = await getLicensedStoryBySlug(storySlug);
+
+      console.log("Licensed story fetch result:", story);
+
+      if (!story) {
+        throw new Error("Failed to fetch story");
+      }
+
+      setFormData({
+        title: story.title,
+        slug: story.slug,
+        author: story.author,
+        description: story.description || "",
+        coverImage: story.coverImage || "",
+        genres: story.genres || "",
+        status: story.status || "ongoing",
+        purchaseLinks:
+          story.purchaseLinks.length > 0
+            ? story.purchaseLinks
+            : [{ store: "", url: "" }],
+      });
+      setOriginalSlug(story.slug || "");
+
+      setError(null);
+    } catch (error) {
+      console.error("Error fetching story:", error);
+      setError("Failed to load story data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [storySlug]);
+
   // Kiểm tra xác thực và phân quyền admin
   useEffect(() => {
     if (!loading) {
@@ -87,43 +108,7 @@ export default function EditLicensedStoryPage() {
     if (!loading && session && storySlug) {
       fetchStory();
     }
-  }, [loading, session, storySlug]);
-
-  const fetchStory = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/licensed-stories/${storySlug}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch story");
-      }
-
-      const data = await response.json();
-      const story = data.story;
-
-      setFormData({
-        title: story.title,
-        slug: story.slug,
-        author: story.author,
-        description: story.description || "",
-        coverImage: story.coverImage || "",
-        genres: story.genres || "",
-        status: story.status,
-        purchaseLinks:
-          story.purchaseLinks.length > 0
-            ? story.purchaseLinks
-            : [{ store: "", url: "" }],
-      });
-      setOriginalSlug(story.slug || "");
-
-      setError(null);
-    } catch (error) {
-      console.error("Error fetching story:", error);
-      setError("Failed to load story data");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [loading, session, storySlug, fetchStory]);
 
   const handleFormChange = (
     e: React.ChangeEvent<
@@ -181,18 +166,8 @@ export default function EditLicensedStoryPage() {
       setIsSubmitting(true);
       setError(null);
 
-      const response = await fetch(`/api/licensed-stories/${storySlug}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to update story");
-      }
+      // Use the server action to update the story
+      await updateLicensedStory(storySlug, formData);
 
       // Show success message
       setFormSuccess(true);

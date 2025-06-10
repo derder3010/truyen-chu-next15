@@ -1,0 +1,1 @@
+ALTER TABLE `advertisements` ADD `type` text DEFAULT 'in-chapter';

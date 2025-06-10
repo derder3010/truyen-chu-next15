@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { licensedStories } from "@/lib/db/schema";
-import { eq, like, or, desc, asc, sql } from "drizzle-orm";
+import { eq, like, or, desc, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth/server";
 
 // GET /api/licensed-stories - Get all licensed stories
@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10", 10);
     const status = searchParams.get("status");
     const search = searchParams.get("search");
+    const tag = searchParams.get("tag");
     const isAdmin = searchParams.get("admin") === "true";
 
     // Kiểm tra xác thực chỉ khi là API admin
@@ -52,6 +53,16 @@ export async function GET(request: NextRequest) {
           like(licensedStories.title, likeSearch),
           like(licensedStories.author, likeSearch)
         )
+      ) as any;
+    }
+
+    if (tag) {
+      // Tìm kiếm theo tag trong trường genres
+      // Vì genres là chuỗi nên chúng ta dùng like để tìm kiếm
+      const likeTag = `%${tag}%`;
+      query = query.where(like(licensedStories.genres, likeTag)) as any;
+      countQuery = countQuery.where(
+        like(licensedStories.genres, likeTag)
       ) as any;
     }
 
@@ -110,11 +121,11 @@ export async function POST(request: NextRequest) {
       title,
       slug,
       author,
-      description,
-      coverImage,
-      genres,
-      status,
-      purchaseLinks,
+      // description,
+      // coverImage,
+      // genres,
+      // status,
+      // purchaseLinks,
     } = body;
 
     if (!title || !slug || !author) {
@@ -139,26 +150,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Store purchase links as JSON string
-    const purchaseLinksJson =
-      purchaseLinks && purchaseLinks.length > 0
-        ? JSON.stringify(purchaseLinks)
-        : null;
+    // const purchaseLinksJson =
+    //   purchaseLinks && purchaseLinks.length > 0
+    //     ? JSON.stringify(purchaseLinks)
+    //     : null;
 
-    const timestamp = Math.floor(Date.now() / 1000);
+    // const timestamp = Math.floor(Date.now() / 1000);
 
     // Insert the new story
-    const result = await db.insert(licensedStories).values({
-      title,
-      slug,
-      author,
-      description: description || null,
-      coverImage: coverImage || null,
-      genres: genres || null,
-      status: status || "ongoing",
-      purchaseLinks: purchaseLinksJson,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
+    // const result = await db.insert(licensedStories).values({
+    //   title,
+    //   slug,
+    //   author,
+    //   description: description || null,
+    //   coverImage: coverImage || null,
+    //   genres: genres || null,
+    //   status: status || "ongoing",
+    //   purchaseLinks: purchaseLinksJson,
+    //   createdAt: timestamp,
+    //   updatedAt: timestamp,
+    // });
 
     return NextResponse.json(
       { message: "Licensed story created successfully" },

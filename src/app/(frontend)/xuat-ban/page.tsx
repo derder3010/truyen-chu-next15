@@ -5,37 +5,46 @@ import CategoryPage from "@/components/LicensedAndEbookComponents/CategoryPage";
 
 // Custom function để lấy danh sách truyện bản quyền
 async function getLicensedStories(page = 1, limit = 10) {
-  // Lấy origin URL từ environment
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (typeof window !== "undefined"
-      ? window.location.origin
-      : "http://localhost:3000");
+  try {
+    // Use server-side API instead of fetch
+    const { getFeaturedLicensedStories } = await import("@/lib/api");
+    const licensedStories = await getFeaturedLicensedStories(limit * page);
 
-  // Tạo URL đầy đủ
-  const url = new URL(`/api/licensed-stories`, origin);
-  url.searchParams.append("page", page.toString());
-  url.searchParams.append("limit", limit.toString());
+    // Manual pagination on the result
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedStories = licensedStories.slice(startIndex, endIndex);
 
-  const response = await fetch(url.toString(), {
-    cache: "no-store",
-  });
-
-  const data = await response.json();
-  return {
-    stories: data.stories.map((story: any) => ({
+    // Transform data to match BookItem type
+    const formattedStories = paginatedStories.map((story) => ({
       ...story,
-      genres: story.genres
-        ? story.genres.split(",").map((g: string) => g.trim())
-        : [],
-    })),
-    pagination: data.pagination || {
-      total: 0,
-      page,
-      limit,
-      totalPages: 0,
-    },
-  };
+      coverImage: story.coverImage ?? undefined,
+      description: story.description ?? "",
+      genres: story.genres ? story.genres : "",
+      status: story.status ?? "ongoing",
+    }));
+
+    return {
+      stories: formattedStories,
+      pagination: {
+        total: licensedStories.length,
+        page,
+        limit,
+        totalPages: Math.ceil(licensedStories.length / limit),
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching licensed stories:", error);
+    return {
+      stories: [],
+      pagination: {
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      },
+    };
+  }
 }
 
 // Hàm để lấy danh sách thể loại từ danh sách truyện
@@ -78,9 +87,20 @@ export async function generateMetadata({
   const selectedGenre =
     typeof searchParamsData.tag === "string" ? searchParamsData.tag : undefined;
 
-  // Lấy danh sách truyện để trích xuất thể loại
-  const { stories } = await getLicensedStories(1, 100); // Lấy 100 truyện để có danh sách thể loại đầy đủ
-  const genres = extractGenresFromStories(stories);
+  // Lấy danh sách truyện từ server-side API
+  const { getFeaturedLicensedStories } = await import("@/lib/api");
+  const allStories = await getFeaturedLicensedStories(100);
+
+  // Transform to match type
+  const formattedStories = allStories.map((story) => ({
+    ...story,
+    coverImage: story.coverImage ?? undefined,
+    description: story.description ?? "",
+    genres: story.genres ? story.genres : "",
+    status: story.status ?? "ongoing",
+  }));
+
+  const genres = extractGenresFromStories(formattedStories);
 
   // Metadata mặc định
   let title = `Truyện Bản Quyền | ${APP_CONFIG.APP_NAME}`;
@@ -142,9 +162,20 @@ export default async function LicensedStoriesPage({
     PAGINATION.STORIES_PER_PAGE
   );
 
-  // Lấy danh sách truyện nhiều hơn để trích xuất đầy đủ thể loại
-  const allStoriesResponse = await getLicensedStories(1, 100);
-  const genres = extractGenresFromStories(allStoriesResponse.stories);
+  // Lấy danh sách truyện từ server-side API
+  const { getFeaturedLicensedStories } = await import("@/lib/api");
+  const allStories = await getFeaturedLicensedStories(100);
+
+  // Transform to match type
+  const formattedAllStories = allStories.map((story) => ({
+    ...story,
+    coverImage: story.coverImage ?? undefined,
+    description: story.description ?? "",
+    genres: story.genres ? story.genres : "",
+    status: story.status ?? "ongoing",
+  }));
+
+  const genres = extractGenresFromStories(formattedAllStories);
 
   // Lọc truyện theo thể loại (nếu có)
   const filteredStories = tag

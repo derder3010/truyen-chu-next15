@@ -78,7 +78,6 @@ export default async function CategoryPage({
   const genres = await getGenres();
 
   // Lấy danh sách truyện từ API
-  // TODO: Thêm API để lọc theo thể loại
   const { stories, pagination } = await getStories(
     currentPage,
     PAGINATION.STORIES_PER_PAGE
@@ -89,11 +88,22 @@ export default async function CategoryPage({
     ? stories.filter((story) => story.genres.includes(tag))
     : stories;
 
+  // Đếm số lượng truyện cho mỗi thể loại
+  const genreCount: Record<string, number> = {};
+
+  // Đếm số truyện trong mỗi thể loại
+  stories.forEach((story) => {
+    story.genres.forEach((genre) => {
+      genreCount[genre] = (genreCount[genre] || 0) + 1;
+    });
+  });
+
   return (
     <CategoryClientPage
       initialStories={filteredStories}
       genres={genres}
       pagination={pagination}
+      genreCount={genreCount}
     />
   );
 }

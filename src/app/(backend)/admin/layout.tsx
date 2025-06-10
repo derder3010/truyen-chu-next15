@@ -6,19 +6,6 @@ import { Sidebar } from "@/components/admin/Sidebar";
 import { useSession } from "@/lib/auth/client";
 import { SessionProvider } from "@/components/SessionProvider";
 
-const adminNavItems = [
-  { label: "Dashboard", href: "/admin", icon: "dashboard" },
-  { label: "Truyện", href: "/admin/novels", icon: "book" },
-  {
-    label: "Truyện bản quyền",
-    href: "/admin/licensed-stories",
-    icon: "license",
-  },
-  { label: "Ebooks", href: "/admin/ebooks", icon: "book-open" },
-  { label: "Quảng cáo", href: "/admin/ads", icon: "ads" },
-  { label: "Người dùng", href: "/admin/users", icon: "users" },
-];
-
 function HeaderClient({ toggleSidebar }: { toggleSidebar: () => void }) {
   return (
     <div className="navbar bg-base-100 border-b border-base-300 shadow-md px-4">

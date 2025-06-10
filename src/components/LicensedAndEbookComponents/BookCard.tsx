@@ -13,11 +13,11 @@ const BookCard: React.FC<BookCardProps> = ({ book, type }) => {
     type === "ebook" ? `/ebook/${book.slug}` : `/xuat-ban/${book.slug}`;
 
   // Đảm bảo genres luôn là mảng
-  const genres: string[] = Array.isArray(book.genres)
-    ? book.genres
-    : typeof book.genres === "string"
-    ? book.genres.split(",").map((g: string) => g.trim())
-    : [];
+  // const genres: string[] = Array.isArray(book.genres)
+  //   ? book.genres
+  //   : typeof book.genres === "string"
+  //   ? book.genres.split(",").map((g: string) => g.trim())
+  //   : [];
 
   return (
     <div className="card card-compact bg-base-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden rounded-xl">
@@ -31,7 +31,7 @@ const BookCard: React.FC<BookCardProps> = ({ book, type }) => {
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
           {/* Tag Xuất Bản hoặc Ebook */}
-          <div className="badge badge-primary badge-sm absolute top-2 right-2">
+          <div className="badge badge-primary absolute bottom-2 right-2">
             {type === "ebook" ? "Ebook" : "Xuất Bản"}
           </div>
         </figure>

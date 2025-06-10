@@ -43,6 +43,13 @@
       "when": 1749487654492,
       "tag": "0005_breezy_nomad",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1749534087838,
+      "tag": "0006_nostalgic_metal_master",
+      "breakpoints": true
     }
   ]
 }

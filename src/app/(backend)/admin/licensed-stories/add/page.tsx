@@ -28,11 +28,6 @@ function generateSlug(title: string) {
   return `${baseSlug}-${randomString}`;
 }
 
-type PurchaseLink = {
-  store: string;
-  url: string;
-};
-
 export default function AddLicensedStoryPage() {
   const router = useRouter();
   const { session, loading, isAuthenticated } = useSession();

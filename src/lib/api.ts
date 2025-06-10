@@ -2,8 +2,8 @@
 
 import { Story, Chapter, StoryStatus } from "@/types";
 import { db } from "./db";
-import { stories, chapters } from "./db/schema";
-import { sql, eq, desc } from "drizzle-orm";
+import { stories, chapters, licensedStories, ebooks } from "./db/schema";
+import { sql, eq, desc, like, ne, and } from "drizzle-orm";
 
 // Database result types
 interface DbStoryResult {
@@ -322,20 +322,29 @@ export async function getChapter(novelId: number, chapterNumber: number) {
 // Server action to get all available genres
 export async function getGenres() {
   try {
-    const results = await db.select({ genres: stories.genres }).from(stories);
+    // Lấy tất cả truyện từ database để xác định thể loại
+    const allStories = await db.select().from(stories);
+
+    // Đếm số lượng truyện cho mỗi thể loại
+    const genreCount: Record<string, number> = {};
 
     // Extract all genres from stories
-    const genresSet = new Set<string>();
-
-    results.forEach((result) => {
-      if (result.genres) {
-        result.genres.split(",").forEach((genre) => {
-          genresSet.add(genre.trim());
+    allStories.forEach((story) => {
+      if (story.genres) {
+        story.genres.split(",").forEach((genre) => {
+          const trimmedGenre = genre.trim();
+          genreCount[trimmedGenre] = (genreCount[trimmedGenre] || 0) + 1;
         });
       }
     });
 
-    return Array.from(genresSet).sort();
+    // Chỉ giữ những thể loại có ít nhất 1 truyện
+    const validGenres = Object.entries(genreCount)
+      .filter(([, count]) => count > 0)
+      .map(([genre]) => genre)
+      .sort();
+
+    return validGenres;
   } catch (error) {
     console.error("Error fetching genres:", error);
     throw new Error("Failed to fetch genres");
@@ -345,23 +354,22 @@ export async function getGenres() {
 // Server action to get featured licensed stories for homepage
 export async function getFeaturedLicensedStories(count = 6) {
   try {
-    const response = await fetch(
-      `${
-        process.env.NEXTAUTH_URL ||
-        process.env.VERCEL_URL ||
-        "http://localhost:3000"
-      }/api/licensed-stories?limit=${count}`,
-      {
-        cache: "no-store",
-      }
-    );
+    // Truy vấn trực tiếp từ database thay vì qua API route
+    const results = await db
+      .select()
+      .from(licensedStories)
+      .orderBy(desc(licensedStories.createdAt))
+      .limit(count);
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch licensed stories");
-    }
+    // Format dữ liệu trả về
+    const formattedStories = results.map((story) => ({
+      ...story,
+      purchaseLinks: story.purchaseLinks
+        ? JSON.parse(story.purchaseLinks as string)
+        : [],
+    }));
 
-    const data = await response.json();
-    return data.stories || [];
+    return formattedStories;
   } catch (error) {
     console.error("Error fetching featured licensed stories:", error);
     return [];
@@ -371,25 +379,409 @@ export async function getFeaturedLicensedStories(count = 6) {
 // Server action to get featured ebooks for homepage
 export async function getFeaturedEbooks(count = 6) {
   try {
-    const response = await fetch(
-      `${
-        process.env.NEXTAUTH_URL ||
-        process.env.VERCEL_URL ||
-        "http://localhost:3000"
-      }/api/ebooks?limit=${count}`,
-      {
-        cache: "no-store",
-      }
-    );
+    // Truy vấn trực tiếp từ database thay vì qua API route
+    const results = await db
+      .select()
+      .from(ebooks)
+      .orderBy(desc(ebooks.createdAt))
+      .limit(count);
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch ebooks");
-    }
+    // Format dữ liệu trả về
+    const formattedEbooks = results.map((ebook) => ({
+      ...ebook,
+      purchaseLinks: ebook.purchaseLinks
+        ? JSON.parse(ebook.purchaseLinks as string)
+        : [],
+    }));
 
-    const data = await response.json();
-    return data.stories || [];
+    return formattedEbooks;
   } catch (error) {
     console.error("Error fetching featured ebooks:", error);
     return [];
+  }
+}
+
+// Server action to get related stories based on genre
+export async function getRelatedStories(storyId: number, limit = 4) {
+  try {
+    // Get the current story first
+    const storyResults = await db
+      .select()
+      .from(stories)
+      .where(eq(stories.id, storyId));
+
+    if (!storyResults.length) {
+      return [];
+    }
+
+    const currentStory = storyResults[0];
+
+    // If story has no genres, return random stories
+    if (!currentStory.genres) {
+      const randomStories = await db
+        .select()
+        .from(stories)
+        .where(ne(stories.id, storyId))
+        .orderBy(sql`RANDOM()`)
+        .limit(limit);
+
+      return randomStories.map(formatStory);
+    }
+
+    // Select a random genre from the story's genres
+    const genres = currentStory.genres.split(",").map((g) => g.trim());
+    const randomGenre = genres[Math.floor(Math.random() * genres.length)];
+
+    // Find stories with similar genre
+    const likeGenre = `%${randomGenre}%`;
+    const relatedStories = await db
+      .select()
+      .from(stories)
+      .where(and(ne(stories.id, storyId), like(stories.genres, likeGenre)))
+      .orderBy(sql`RANDOM()`)
+      .limit(limit);
+
+    // If not enough related stories found, fill with random stories
+    if (relatedStories.length < limit) {
+      const remainingCount = limit - relatedStories.length;
+      const existingIds = relatedStories.map((s) => s.id);
+      existingIds.push(storyId); // Add current story id to exclude
+
+      // Construct a NOT IN condition dynamically with multiple OR conditions
+      const randomStories = await db
+        .select()
+        .from(stories)
+        .where(and(...existingIds.map((id) => ne(stories.id, id))))
+        .orderBy(sql`RANDOM()`)
+        .limit(remainingCount);
+
+      return [...relatedStories, ...randomStories].map(formatStory);
+    }
+
+    return relatedStories.map(formatStory);
+  } catch (error) {
+    console.error(
+      `Error fetching related stories for story ${storyId}:`,
+      error
+    );
+    return [];
+  }
+}
+
+// Server action to get stories grouped by genres
+export async function getStoriesByGenres(
+  genres: string[],
+  limit = 6,
+  excludedStoryIds: number[] = []
+) {
+  try {
+    if (!genres.length) {
+      return [];
+    }
+
+    const result = [];
+
+    // Get stories for each genre
+    for (const genre of genres) {
+      const likeGenre = `%${genre}%`;
+
+      // Tạo điều kiện loại bỏ các truyện đã được chọn cho bất kỳ thể loại nào
+      const excludeConditions = [...excludedStoryIds];
+
+      // Lấy truyện cho thể loại hiện tại
+      const genreStories = await db
+        .select()
+        .from(stories)
+        .where(
+          and(
+            like(stories.genres, likeGenre),
+            ...excludeConditions.map((id) => ne(stories.id, id))
+          )
+        )
+        .orderBy(sql`RANDOM()`)
+        .limit(limit);
+
+      // Nếu có truyện cho thể loại này, thêm vào kết quả
+      if (genreStories.length > 0) {
+        result.push({
+          genre,
+          stories: genreStories.map(formatStory),
+        });
+
+        // Cập nhật danh sách excludedStoryIds để tránh trùng lặp
+        excludedStoryIds = [
+          ...excludedStoryIds,
+          ...genreStories.map((s) => s.id),
+        ];
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error(`Error fetching stories by genres:`, error);
+    return [];
+  }
+}
+
+// Server action to get an ebook by slug
+export async function getEbookBySlug(slugOrId: string) {
+  try {
+    let ebookResults;
+
+    // Check if this is a numeric ID
+    if (/^\d+$/.test(slugOrId)) {
+      // If numeric ID, query by ID
+      ebookResults = await db
+        .select()
+        .from(ebooks)
+        .where(eq(ebooks.id, parseInt(slugOrId)))
+        .limit(1);
+    } else {
+      // Otherwise query by slug
+      ebookResults = await db
+        .select()
+        .from(ebooks)
+        .where(eq(ebooks.slug, slugOrId))
+        .limit(1);
+    }
+
+    if (!ebookResults.length) {
+      return null;
+    }
+
+    const ebook = ebookResults[0];
+
+    // Process purchase links
+    return {
+      ...ebook,
+      purchaseLinks: ebook.purchaseLinks
+        ? JSON.parse(ebook.purchaseLinks as string)
+        : [],
+    };
+  } catch (error) {
+    console.error(`Error fetching ebook by slug/id ${slugOrId}:`, error);
+    return null;
+  }
+}
+
+// Server action to get a licensed story by slug
+export async function getLicensedStoryBySlug(slugOrId: string) {
+  try {
+    let storyResults;
+
+    // Check if this is a numeric ID
+    if (/^\d+$/.test(slugOrId)) {
+      // If numeric ID, query by ID
+      storyResults = await db
+        .select()
+        .from(licensedStories)
+        .where(eq(licensedStories.id, parseInt(slugOrId)))
+        .limit(1);
+    } else {
+      // Otherwise query by slug
+      storyResults = await db
+        .select()
+        .from(licensedStories)
+        .where(eq(licensedStories.slug, slugOrId))
+        .limit(1);
+    }
+
+    if (!storyResults.length) {
+      return null;
+    }
+
+    const story = storyResults[0];
+
+    // Process purchase links
+    return {
+      ...story,
+      purchaseLinks: story.purchaseLinks
+        ? JSON.parse(story.purchaseLinks as string)
+        : [],
+    };
+  } catch (error) {
+    console.error(
+      `Error fetching licensed story by slug/id ${slugOrId}:`,
+      error
+    );
+    return null;
+  }
+}
+
+// Server action to update a licensed story
+export async function updateLicensedStory(
+  slugOrId: string,
+  data: {
+    title: string;
+    slug: string;
+    author: string;
+    description: string;
+    coverImage: string;
+    genres: string;
+    status: "ongoing" | "completed";
+    purchaseLinks: { store: string; url: string }[];
+  }
+) {
+  try {
+    // Check if the story exists
+    let existingStory;
+
+    // Check if this is a numeric ID
+    if (/^\d+$/.test(slugOrId)) {
+      // If numeric ID, query by ID
+      existingStory = await db
+        .select()
+        .from(licensedStories)
+        .where(eq(licensedStories.id, parseInt(slugOrId)))
+        .limit(1);
+    } else {
+      // Otherwise query by slug
+      existingStory = await db
+        .select()
+        .from(licensedStories)
+        .where(eq(licensedStories.slug, slugOrId))
+        .limit(1);
+    }
+
+    if (existingStory.length === 0) {
+      throw new Error("Licensed story not found");
+    }
+
+    // Process purchase links (convert to JSON string)
+    const purchaseLinks = data.purchaseLinks
+      ? JSON.stringify(data.purchaseLinks)
+      : null;
+
+    // Check slug uniqueness (if changed)
+    if (data.slug !== existingStory[0].slug) {
+      const slugExists = await db
+        .select()
+        .from(licensedStories)
+        .where(eq(licensedStories.slug, data.slug))
+        .limit(1);
+
+      if (slugExists.length > 0) {
+        throw new Error("A licensed story with this slug already exists");
+      }
+    }
+
+    // Update the story in the database
+    const updatedStory = await db
+      .update(licensedStories)
+      .set({
+        title: data.title,
+        slug: data.slug,
+        author: data.author,
+        description: data.description,
+        coverImage: data.coverImage,
+        genres: data.genres,
+        status: data.status,
+        purchaseLinks,
+        updatedAt: Math.floor(Date.now() / 1000),
+      })
+      .where(
+        /^\d+$/.test(slugOrId)
+          ? eq(licensedStories.id, parseInt(slugOrId))
+          : eq(licensedStories.slug, slugOrId)
+      )
+      .returning();
+
+    // Return the updated story with parsed purchase links
+    return {
+      ...updatedStory[0],
+      purchaseLinks: data.purchaseLinks || [],
+    };
+  } catch (error) {
+    console.error("Error updating licensed story:", error);
+    throw error;
+  }
+}
+
+// Server action to update an ebook by slug
+export async function updateEbook(
+  slugOrId: string,
+  data: {
+    title: string;
+    slug: string;
+    author: string;
+    description: string;
+    coverImage: string;
+    genres: string;
+    status: "ongoing" | "completed";
+    purchaseLinks: { store: string; url: string }[];
+  }
+) {
+  try {
+    // Check if the ebook exists
+    let existingEbook;
+
+    // Check if this is a numeric ID
+    if (/^\d+$/.test(slugOrId)) {
+      // If numeric ID, query by ID
+      existingEbook = await db
+        .select()
+        .from(ebooks)
+        .where(eq(ebooks.id, parseInt(slugOrId)))
+        .limit(1);
+    } else {
+      // Otherwise query by slug
+      existingEbook = await db
+        .select()
+        .from(ebooks)
+        .where(eq(ebooks.slug, slugOrId))
+        .limit(1);
+    }
+
+    if (existingEbook.length === 0) {
+      throw new Error("Ebook not found");
+    }
+
+    // Process purchase links (convert to JSON string)
+    const purchaseLinks = data.purchaseLinks
+      ? JSON.stringify(data.purchaseLinks)
+      : null;
+
+    // Check slug uniqueness (if changed)
+    if (data.slug !== existingEbook[0].slug) {
+      const slugExists = await db
+        .select()
+        .from(ebooks)
+        .where(eq(ebooks.slug, data.slug))
+        .limit(1);
+
+      if (slugExists.length > 0) {
+        throw new Error("An ebook with this slug already exists");
+      }
+    }
+
+    // Update the ebook in the database
+    const updatedEbook = await db
+      .update(ebooks)
+      .set({
+        title: data.title,
+        slug: data.slug,
+        author: data.author,
+        description: data.description,
+        coverImage: data.coverImage,
+        genres: data.genres,
+        status: data.status,
+        purchaseLinks,
+        updatedAt: Math.floor(Date.now() / 1000),
+      })
+      .where(
+        /^\d+$/.test(slugOrId)
+          ? eq(ebooks.id, parseInt(slugOrId))
+          : eq(ebooks.slug, slugOrId)
+      )
+      .returning();
+
+    // Return the updated ebook with parsed purchase links
+    return {
+      ...updatedEbook[0],
+      purchaseLinks: data.purchaseLinks || [],
+    };
+  } catch (error) {
+    console.error("Error updating ebook:", error);
+    throw error;
   }
 }

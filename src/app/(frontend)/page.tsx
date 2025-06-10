@@ -7,11 +7,15 @@ import FeaturedStories from "@/components/FeaturedStories";
 import LatestChapters from "@/components/LatestChapters";
 import FeaturedLicensedStories from "@/components/FeaturedLicensedStories";
 import FeaturedEbooks from "@/components/FeaturedEbooks";
+import GenreStoriesSection from "@/components/GenreStoriesSection";
+import HorizontalAdBanner from "@/components/HorizontalAdBanner";
 import {
   getFeaturedStories,
   getLatestChapters,
   getFeaturedLicensedStories,
   getFeaturedEbooks,
+  getGenres,
+  getStoriesByGenres,
 } from "@/lib/api";
 
 // Metadata tĩnh cho trang chủ
@@ -49,6 +53,13 @@ export const metadata: Metadata = {
   },
 };
 
+function getRandomElements<T>(array: T[], count: number): T[] {
+  if (array.length <= count) return array;
+
+  const shuffled = [...array].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}
+
 export default async function HomePage() {
   // Fetch data from the database using our server actions
   const featuredStories = await getFeaturedStories(
@@ -59,8 +70,38 @@ export default async function HomePage() {
   );
 
   // Fetch licensed stories and ebooks
-  const licensedStories = await getFeaturedLicensedStories(6);
-  const ebooks = await getFeaturedEbooks(6);
+  const licensedStoriesRaw = await getFeaturedLicensedStories(6);
+  const ebooksRaw = await getFeaturedEbooks(6);
+
+  // Transform null values to undefined to match expected types
+  const licensedStories = licensedStoriesRaw.map((story) => ({
+    ...story,
+    coverImage: story.coverImage ?? undefined,
+    description: story.description ?? "",
+    genres: story.genres ? story.genres : "",
+    status: story.status ?? "ongoing",
+  }));
+
+  const ebooks = ebooksRaw.map((ebook) => ({
+    ...ebook,
+    coverImage: ebook.coverImage ?? undefined,
+    description: ebook.description ?? "",
+    genres: ebook.genres ? ebook.genres : "",
+    status: ebook.status ?? "ongoing",
+  }));
+
+  // Lấy danh sách thể loại và chọn ngẫu nhiên 3 thể loại
+  const allGenres = await getGenres();
+  const randomGenres = getRandomElements(allGenres, 3);
+
+  // Lấy danh sách truyện theo 3 thể loại ngẫu nhiên
+  // Loại bỏ các truyện đã có trong featuredStories để tránh trùng lặp
+  const excludedStoryIds = featuredStories.map((story) => parseInt(story.id));
+  const genreStories = await getStoriesByGenres(
+    randomGenres,
+    6,
+    excludedStoryIds
+  );
 
   // Create a function to get story by slug from the latest chapters
   const getStoryBySlug = (slug: string): Story | undefined => {
@@ -120,10 +161,17 @@ export default async function HomePage() {
           getStoryBySlug={getStoryBySlug}
         />
 
+        {/* Truyện theo thể loại ngẫu nhiên */}
+        {genreStories.length > 0 && (
+          <GenreStoriesSection genreStories={genreStories} />
+        )}
+
         {/* Truyện Xuất Bản */}
         {licensedStories.length > 0 && (
           <FeaturedLicensedStories stories={licensedStories} />
         )}
+
+        <HorizontalAdBanner adType="banner" position="content" />
 
         {/* Ebook */}
         {ebooks.length > 0 && <FeaturedEbooks stories={ebooks} />}

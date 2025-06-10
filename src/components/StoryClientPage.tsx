@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "~image";
@@ -34,15 +34,12 @@ export default function StoryClientPage({
 }: StoryClientPageProps) {
   const router = useRouter();
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [relatedStories, setRelatedStories] = useState<Story[]>([]);
+  const [isLoadingRelated, setIsLoadingRelated] = useState(true);
 
-  // Handle not found case
-  if (!story) {
-    return <NotFoundPage />;
-  }
-
-  // Fetch chapters using SWR
-  const { data, error, isLoading } = useSWR(
-    `/api/chapters?storyId=${story.id}&page=${currentPage}`,
+  // Move useSWR hook outside of conditional - always call it with a proper URL or null
+  const { data } = useSWR(
+    story ? `/api/chapters?storyId=${story.id}&page=${currentPage}` : null,
     fetcher,
     {
       fallbackData: {
@@ -54,8 +51,41 @@ export default function StoryClientPage({
     }
   );
 
+  // Move useEffect outside of conditional
+  useEffect(() => {
+    // Only execute the fetch inside the useEffect if story exists
+    if (!story) return;
+
+    const fetchRelatedStories = async () => {
+      try {
+        setIsLoadingRelated(true);
+        const response = await fetch(
+          `/api/stories/related?storyId=${story.id}&limit=6`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch related stories");
+        }
+
+        const data = await response.json();
+        setRelatedStories(data.stories || []);
+      } catch (error) {
+        console.error("Error fetching related stories:", error);
+      } finally {
+        setIsLoadingRelated(false);
+      }
+    };
+
+    fetchRelatedStories();
+  }, [story]);
+
   const chapters = data?.chapters || initialChapters;
   const pagination = data?.pagination || initialPagination;
+
+  // Handle not found case - move this AFTER all hooks
+  if (!story) {
+    return <NotFoundPage />;
+  }
 
   const handlePageChange = (page: number) => {
     // Navigate to the same page with a different page parameter
@@ -308,6 +338,50 @@ export default function StoryClientPage({
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Có thể bạn quan tâm */}
+      <div className="card bg-base-100 shadow-lg mt-8">
+        <div className="card-body">
+          <h2 className="text-xl font-bold mb-4">Có thể bạn quan tâm</h2>
+
+          {isLoadingRelated ? (
+            <div className="flex justify-center py-4">
+              <div className="loading loading-spinner loading-md text-primary"></div>
+            </div>
+          ) : relatedStories.length === 0 ? (
+            <p className="opacity-70">Không tìm thấy truyện tương tự.</p>
+          ) : (
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+              {relatedStories.map((relatedStory) => (
+                <Link
+                  key={relatedStory.id}
+                  href={`/truyen/${relatedStory.slug}`}
+                  className="card bg-base-200 hover:bg-base-300 transition-colors h-full"
+                >
+                  <figure className="px-2 pt-2">
+                    <div className="relative w-full aspect-[3/4] rounded-md overflow-hidden border border-base-300">
+                      <Image
+                        src={
+                          relatedStory.coverImage || "/images/placeholder.jpg"
+                        }
+                        alt={relatedStory.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 33vw, 16vw"
+                      />
+                    </div>
+                  </figure>
+                  <div className="card-body p-2">
+                    <h3 className="text-xs font-medium line-clamp-2">
+                      {relatedStory.title}
+                    </h3>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

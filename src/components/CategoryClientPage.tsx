@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
@@ -21,12 +21,14 @@ interface CategoryClientPageProps {
     limit: number;
     totalPages: number;
   };
+  genreCount?: Record<string, number>;
 }
 
 const CategoryClientPage: React.FC<CategoryClientPageProps> = ({
   initialStories,
   genres,
   pagination: initialPagination,
+  genreCount = {},
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -88,6 +90,9 @@ const CategoryClientPage: React.FC<CategoryClientPageProps> = ({
                 } py-3 cursor-pointer transition-colors`}
               >
                 {genre}
+                {genreCount[genre] !== undefined && (
+                  <span className="ml-1">({genreCount[genre]})</span>
+                )}
               </Link>
             ))}
             {selectedGenre && (

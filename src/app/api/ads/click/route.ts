@@ -58,7 +58,35 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(advertisements.id, id));
 
-    return NextResponse.json({ success: true });
+    // Create a response to update cookies
+    const response = NextResponse.json({ success: true });
+
+    // Get existing viewed ads
+    let viewedAds = {};
+    const adCookie = request.cookies.get("viewed_ads");
+    if (adCookie?.value) {
+      try {
+        viewedAds = JSON.parse(adCookie.value);
+      } catch (e) {
+        console.error("Error parsing viewed ads cookie:", e);
+      }
+    }
+
+    // Add the current ad to viewed ads with current timestamp
+    viewedAds = {
+      ...viewedAds,
+      [id]: Date.now(),
+    };
+
+    // Set cookie with 24-hour expiry (matching our "once per day" message)
+    response.cookies.set({
+      name: "viewed_ads",
+      value: JSON.stringify(viewedAds),
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Error tracking advertisement click:", error);
     return NextResponse.json(

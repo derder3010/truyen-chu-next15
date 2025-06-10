@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, Suspense, useEffect } from "react";
+import React, { useState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import SearchInput from "@/components/SearchInput";

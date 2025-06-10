@@ -10,18 +10,48 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const chapterNumber = parseInt(searchParams.get("chapter") || "1", 10);
 
+    // Get recently viewed ad IDs from cookies
+    let recentlyViewedAds: number[] = [];
+    const adCookie = request.cookies.get("viewed_ads");
+
+    if (adCookie?.value) {
+      try {
+        const viewedAdsData = JSON.parse(adCookie.value);
+
+        // Filter out ads viewed in the last 24 hours
+        const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+        recentlyViewedAds = Object.entries(viewedAdsData)
+          .filter(([, timestamp]) => Number(timestamp) > twentyFourHoursAgo)
+          .map(([id]) => Number(id));
+      } catch (e) {
+        console.error("Error parsing viewed ads cookie:", e);
+      }
+    }
+
+    // Build the query conditions
+    const conditions = [
+      eq(advertisements.isActive, true),
+      eq(advertisements.type, "in-chapter"), // Only get in-chapter type ads
+    ];
+
+    // Add chapter frequency condition
+    conditions.push(
+      sql`${chapterNumber} % ${advertisements.displayFrequency} = 0`
+    );
+
+    // Exclude recently viewed ads if there are any
+    if (recentlyViewedAds.length > 0) {
+      conditions.push(
+        sql`${advertisements.id} NOT IN (${recentlyViewedAds.join(",")})`
+      );
+    }
+
     // Find ads that are active and should be displayed for this chapter
     const displayableAds = await db
       .select()
       .from(advertisements)
-      .where(
-        and(
-          eq(advertisements.isActive, true),
-          // Only show ads where chapter number is divisible by display frequency
-          // e.g. if displayFrequency is 3, show on chapters 3, 6, 9, etc.
-          sql`${chapterNumber} % ${advertisements.displayFrequency} = 0`
-        )
-      )
+      .where(and(...conditions))
       .orderBy(sql`RANDOM()`) // Use SQL for randomization
       .limit(1);
 
@@ -45,7 +75,8 @@ export async function GET(request: NextRequest) {
       .where(eq(advertisements.id, advertisement.id));
 
     // Remove sensitive information before returning
-    const { id, title, description, imageUrl, affiliateUrl } = advertisement;
+    const { id, title, description, imageUrl, affiliateUrl, type } =
+      advertisement;
 
     return NextResponse.json({
       advertisement: {
@@ -54,6 +85,7 @@ export async function GET(request: NextRequest) {
         description: description ?? "",
         imageUrl: imageUrl ?? "",
         affiliateUrl: affiliateUrl ?? "",
+        type: type ?? "in-chapter",
       },
     });
   } catch (error) {

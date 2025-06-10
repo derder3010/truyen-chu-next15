@@ -4,6 +4,8 @@ import "@/app/globals.css";
 import { Providers } from "@/components/Providers";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
+import ContentProtectionScript from "@/components/ContentProtectionScript";
+import ContentProtection from "@/components/ContentProtection";
 
 const livvic = Livvic({
   weight: ["400", "500", "600", "700"],
@@ -38,6 +40,19 @@ export const metadata: Metadata = {
     "truyện full",
     "truyện mới",
     "Doctruyenfull.vn",
+    "Đọc truyện",
+    "Đọc truyện online",
+    "Đọc truyện hay",
+    "Đọc truyện mới",
+    "Đọc truyện tiếng Việt",
+    "Đọc truyện chữ",
+    "ebook",
+    "ebook online",
+    "ebook hay",
+    "ebook mới",
+    "ebook tiếng Việt",
+    "ebook chữ",
+    "ebook truyện",
   ],
   referrer: "origin-when-cross-origin",
   creator: "Doctruyenfull.vn",
@@ -57,7 +72,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://doctruyenfull.io.vn/og-image.jpg",
+        url: "https://doctruyenfull.io.vn/og-image.png",
         width: 1200,
         height: 630,
         alt: "Doctruyenfull.vn - Đọc truyện chữ online",
@@ -69,7 +84,7 @@ export const metadata: Metadata = {
     title: "Doctruyenfull.vn - Đọc truyện chữ online",
     description:
       "Đọc truyện online, truyện hay cập nhật liên tục. Mang đến trải nghiệm đọc truyện tốt nhất.",
-    images: ["https://doctruyenfull.io.vn/twitter-image.jpg"],
+    images: ["https://doctruyenfull.io.vn/twitter-image.png"],
     creator: "@truyencv",
   },
   icons: {
@@ -113,6 +128,8 @@ export default async function ClientLayout({
               {children}
               <SpeedInsights />
               <Analytics />
+              <ContentProtection />
+              <ContentProtectionScript />
             </main>
           </div>
         </Providers>

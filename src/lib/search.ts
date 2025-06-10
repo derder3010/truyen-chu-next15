@@ -1,5 +1,4 @@
 import MiniSearch from "minisearch";
-import { Story } from "@/types";
 import { removeVietnameseAccents } from "./utils";
 
 // Định nghĩa một interface chung cho tất cả các loại nội dung (truyện, ebook, truyện bản quyền)

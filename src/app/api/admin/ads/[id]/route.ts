@@ -110,6 +110,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (body.impressionCount !== undefined)
       updateData.impressionCount = body.impressionCount;
     if (body.clickCount !== undefined) updateData.clickCount = body.clickCount;
+    if (body.type !== undefined) updateData.type = body.type;
 
     console.log("Updating advertisement with data:", updateData);
 

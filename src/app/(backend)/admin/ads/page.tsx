@@ -19,6 +19,7 @@ interface Advertisement {
   displayFrequency: number;
   createdAt: number;
   updatedAt: number;
+  type?: string;
 }
 
 // Pagination type
@@ -389,10 +390,11 @@ function AdsContent() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="table table-zebra">
+                <table className="table table-zebra ">
                   <thead>
                     <tr>
                       <th>Quảng cáo</th>
+                      <th>Loại</th>
                       <th>Lượt hiển thị</th>
                       <th>Lượt click</th>
                       <th>CTR</th>
@@ -443,6 +445,17 @@ function AdsContent() {
                             </div>
                           </div>
                         </td>
+                        <td>
+                          <span className="badge badge-outline truncate">
+                            {ad.type === "in-chapter" && "Trong chương"}
+                            {ad.type === "priority" && "Ưu tiên"}
+                            {ad.type === "banner" && "Banner"}
+                            {ad.type === "loading" && "Màn hình chờ"}
+                            {ad.type === "ebook-waiting" && "Chờ ebook"}
+                            {ad.type === "other" && "Khác"}
+                            {!ad.type && "Trong chương"}
+                          </span>
+                        </td>
                         <td>{ad.impressionCount.toLocaleString("vi-VN")}</td>
                         <td>{ad.clickCount.toLocaleString("vi-VN")}</td>
                         <td>
@@ -452,7 +465,9 @@ function AdsContent() {
                           <div className="flex items-center gap-2">
                             <span
                               className={`badge ${
-                                ad.isActive ? "badge-success" : "badge-ghost"
+                                ad.isActive
+                                  ? "badge-success truncate"
+                                  : "badge-ghost truncate"
                               }`}
                             >
                               {ad.isActive ? "Đang hiển thị" : "Đã ẩn"}

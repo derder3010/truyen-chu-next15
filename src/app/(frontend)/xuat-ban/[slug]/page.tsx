@@ -14,31 +14,32 @@ type Props = {
 // Custom function để lấy thông tin truyện bản quyền theo slug
 async function getLicensedStoryBySlug(slug: string) {
   try {
-    // Lấy origin URL từ environment
-    const origin =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      (typeof window !== "undefined"
-        ? window.location.origin
-        : "http://localhost:3000");
+    // Import server-side API function
+    const { getLicensedStoryBySlug: fetchLicensedStoryBySlug } = await import(
+      "@/lib/api"
+    );
 
-    // Sử dụng API endpoint đúng format
-    const url = new URL(`/api/licensed-stories/${slug}`, origin);
+    // Get story data
+    const story = await fetchLicensedStoryBySlug(slug);
 
-    const response = await fetch(url.toString(), {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
+    if (!story) {
       return null;
     }
 
-    const data = await response.json();
+    // Format the response with correct types for BookItem
     return {
-      ...data.story,
-      genres: data.story.genres
-        ? data.story.genres.split(",").map((g: string) => g.trim())
-        : [],
-      purchaseLinks: data.story.purchaseLinks || [],
+      ...story,
+      // Format genres as array if it's a string
+      genres:
+        typeof story.genres === "string"
+          ? story.genres.split(",").map((g: string) => g.trim())
+          : story.genres || [],
+      // Ensure purchaseLinks exists
+      purchaseLinks: story.purchaseLinks || [],
+      // Fix null values to match expected types
+      coverImage: story.coverImage ?? undefined,
+      description: story.description ?? "",
+      status: story.status ?? "ongoing",
     };
   } catch (error) {
     console.error("Error fetching licensed story:", error);

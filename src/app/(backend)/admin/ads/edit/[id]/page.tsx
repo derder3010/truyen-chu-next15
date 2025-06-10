@@ -36,6 +36,7 @@ export default function EditAdvertisementPage({
     affiliateUrl: "",
     displayFrequency: 3,
     isActive: true,
+    type: "in-chapter",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,6 +66,7 @@ export default function EditAdvertisementPage({
           affiliateUrl: data.affiliateUrl,
           displayFrequency: data.displayFrequency,
           isActive: data.isActive,
+          type: data.type || "in-chapter",
         });
       } catch (err) {
         console.error("Error fetching advertisement:", err);
@@ -165,7 +167,7 @@ export default function EditAdvertisementPage({
     try {
       new URL(urlString);
       return true;
-    } catch (err) {
+    } catch {
       return false;
     }
   };
@@ -325,6 +327,30 @@ export default function EditAdvertisementPage({
               <label className="label">
                 <span className="label-text-alt">
                   Quảng cáo sẽ hiển thị sau mỗi bao nhiêu chương
+                </span>
+              </label>
+            </div>
+
+            <div className="form-control w-full mb-4">
+              <label className="label">
+                <span className="label-text font-semibold">Loại quảng cáo</span>
+              </label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className="select select-bordered w-full"
+              >
+                <option value="in-chapter">Trong chương (In-Chapter)</option>
+                <option value="priority">Ưu tiên (Priority)</option>
+                <option value="banner">Banner</option>
+                <option value="loading">Màn hình chờ (Loading)</option>
+                <option value="ebook-waiting">Chờ ebook (Ebook Waiting)</option>
+                <option value="other">Khác (Other)</option>
+              </select>
+              <label className="label">
+                <span className="label-text-alt">
+                  Chọn vị trí hiển thị quảng cáo
                 </span>
               </label>
             </div>

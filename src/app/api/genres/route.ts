@@ -21,6 +21,14 @@ export async function GET(request: NextRequest) {
       filteredStories = stories.filter((story) => story.genres.includes(tag));
     }
 
+    // Tính toán số lượng truyện cho mỗi thể loại
+    const genreCount: Record<string, number> = {};
+    stories.forEach((story) => {
+      story.genres.forEach((genre) => {
+        genreCount[genre] = (genreCount[genre] || 0) + 1;
+      });
+    });
+
     // Trả về kết quả
     return NextResponse.json({
       stories: filteredStories,
@@ -31,6 +39,7 @@ export async function GET(request: NextRequest) {
           ? Math.ceil(filteredStories.length / PAGINATION.STORIES_PER_PAGE) || 1
           : pagination.totalPages,
       },
+      genreCount,
     });
   } catch (error) {
     console.error("Error fetching stories by genre:", error);

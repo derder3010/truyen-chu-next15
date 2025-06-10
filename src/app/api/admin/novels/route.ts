@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
     const youtubeEmbed = formData.get("youtubeEmbed") as string;
 
     // Combine genre and keywords into genres field
-    let genres = genre || "";
+    let genreValue = genre || "";
     if (keywords) {
-      genres = genres ? `${genres},${keywords}` : keywords;
+      genreValue = genreValue ? `${genreValue},${keywords}` : keywords;
     }
 
     // Validate required fields
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         author,
         description,
         coverImage: coverImagePath,
-        genres: genre || null,
+        genres: genreValue || null,
         youtubeEmbed: youtubeEmbed || null,
         status:
           status === "paused" ? "ongoing" : (status as "ongoing" | "completed"),

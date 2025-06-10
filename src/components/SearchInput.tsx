@@ -19,7 +19,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   placeholder = "Tìm truyện...",
   className = "",
   onSearch,
-  hasMiniSearch = false,
+  // hasMiniSearch = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<string[]>([]);

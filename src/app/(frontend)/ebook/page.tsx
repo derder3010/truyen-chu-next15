@@ -5,37 +5,47 @@ import CategoryPage from "@/components/LicensedAndEbookComponents/CategoryPage";
 
 // Custom function để lấy danh sách ebook
 async function getEbooks(page = 1, limit = 10) {
-  // Lấy origin URL từ environment
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (typeof window !== "undefined"
-      ? window.location.origin
-      : "http://localhost:3000");
+  // Use the server component API directly instead of fetch for ebooks
+  try {
+    // Use server-side API instead of fetch
+    const { getFeaturedEbooks } = await import("@/lib/api");
+    const ebooks = await getFeaturedEbooks(limit * page);
 
-  // Tạo URL đầy đủ
-  const url = new URL(`/api/ebooks`, origin);
-  url.searchParams.append("page", page.toString());
-  url.searchParams.append("limit", limit.toString());
+    // Manual pagination on the result
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedEbooks = ebooks.slice(startIndex, endIndex);
 
-  const response = await fetch(url.toString(), {
-    cache: "no-store",
-  });
+    // Transform data to match BookItem type
+    const formattedEbooks = paginatedEbooks.map((ebook) => ({
+      ...ebook,
+      coverImage: ebook.coverImage ?? undefined,
+      description: ebook.description ?? "",
+      genres: ebook.genres ? ebook.genres : "",
+      status: ebook.status ?? "ongoing",
+    }));
 
-  const data = await response.json();
-  return {
-    stories: data.stories.map((story: any) => ({
-      ...story,
-      genres: story.genres
-        ? story.genres.split(",").map((g: string) => g.trim())
-        : [],
-    })),
-    pagination: data.pagination || {
-      total: 0,
-      page,
-      limit,
-      totalPages: 0,
-    },
-  };
+    return {
+      stories: formattedEbooks,
+      pagination: {
+        total: ebooks.length,
+        page,
+        limit,
+        totalPages: Math.ceil(ebooks.length / limit),
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching ebooks:", error);
+    return {
+      stories: [],
+      pagination: {
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      },
+    };
+  }
 }
 
 // Hàm để lấy danh sách thể loại từ danh sách ebook
@@ -78,9 +88,20 @@ export async function generateMetadata({
   const selectedGenre =
     typeof searchParamsData.tag === "string" ? searchParamsData.tag : undefined;
 
-  // Lấy danh sách ebook để trích xuất thể loại
-  const { stories } = await getEbooks(1, 100); // Lấy 100 ebook để có danh sách thể loại đầy đủ
-  const genres = extractGenresFromEbooks(stories);
+  // Lấy danh sách ebook từ server-side API
+  const { getFeaturedEbooks } = await import("@/lib/api");
+  const allEbooks = await getFeaturedEbooks(100);
+
+  // Transform to match type
+  const formattedEbooks = allEbooks.map((ebook) => ({
+    ...ebook,
+    coverImage: ebook.coverImage ?? undefined,
+    description: ebook.description ?? "",
+    genres: ebook.genres ? ebook.genres : "",
+    status: ebook.status ?? "ongoing",
+  }));
+
+  const genres = extractGenresFromEbooks(formattedEbooks);
 
   // Metadata mặc định
   let title = `Ebook | ${APP_CONFIG.APP_NAME}`;
@@ -142,9 +163,20 @@ export default async function EbookPage({
     PAGINATION.STORIES_PER_PAGE
   );
 
-  // Lấy danh sách ebook nhiều hơn để trích xuất đầy đủ thể loại
-  const allEbooksResponse = await getEbooks(1, 100);
-  const genres = extractGenresFromEbooks(allEbooksResponse.stories);
+  // Lấy danh sách ebook từ server-side API
+  const { getFeaturedEbooks } = await import("@/lib/api");
+  const allEbooks = await getFeaturedEbooks(100);
+
+  // Transform to match type
+  const formattedAllEbooks = allEbooks.map((ebook) => ({
+    ...ebook,
+    coverImage: ebook.coverImage ?? undefined,
+    description: ebook.description ?? "",
+    genres: ebook.genres ? ebook.genres : "",
+    status: ebook.status ?? "ongoing",
+  }));
+
+  const genres = extractGenresFromEbooks(formattedAllEbooks);
 
   // Lọc ebook theo thể loại (nếu có)
   const filteredStories = tag

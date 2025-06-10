@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/lib/auth/client";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "~image";
+import { getEbookBySlug, updateEbook } from "@/lib/api";
 
 // Function to convert Vietnamese characters to non-accented
 function removeVietnameseAccents(str: string) {
@@ -27,25 +28,10 @@ function generateSlug(title: string, id: string) {
   return `${baseSlug}-${id}`;
 }
 
-type PurchaseLink = {
-  store: string;
-  url: string;
-};
-
-type Ebook = {
-  id: number;
-  title: string;
-  slug: string;
-  author: string;
-  description: string | null;
-  coverImage: string | null;
-  genres: string | null;
-  status: "ongoing" | "completed";
-  purchaseLinks: PurchaseLink[];
-  viewCount: number;
-  createdAt: number;
-  updatedAt: number;
-};
+// type PurchaseLink = {
+//   store: string;
+//   url: string;
+// };
 
 export default function EditEbookPage() {
   const router = useRouter();
@@ -71,6 +57,46 @@ export default function EditEbookPage() {
     purchaseLinks: [{ store: "", url: "" }],
   });
 
+  // Define fetchEbook with useCallback to properly handle dependencies
+  const fetchEbook = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      console.log("Fetching ebook with slugOrId:", ebookSlug);
+
+      // Use the server action to get ebook by slug
+      const ebook = await getEbookBySlug(ebookSlug);
+
+      console.log("Ebook fetch result:", ebook);
+
+      if (!ebook) {
+        throw new Error("Failed to fetch ebook");
+      }
+
+      setFormData({
+        title: ebook.title,
+        slug: ebook.slug,
+        author: ebook.author,
+        description: ebook.description || "",
+        coverImage: ebook.coverImage || "",
+        genres: ebook.genres || "",
+        status: ebook.status || "completed",
+        purchaseLinks:
+          ebook.purchaseLinks.length > 0
+            ? ebook.purchaseLinks
+            : [{ store: "", url: "" }],
+      });
+      setOriginalSlug(ebook.slug || "");
+
+      setError(null);
+    } catch (error) {
+      console.error("Error fetching ebook:", error);
+      setError("Failed to load ebook data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [ebookSlug]);
+
   // Kiểm tra xác thực và phân quyền admin
   useEffect(() => {
     if (!loading) {
@@ -87,43 +113,7 @@ export default function EditEbookPage() {
     if (!loading && session && ebookSlug) {
       fetchEbook();
     }
-  }, [loading, session, ebookSlug]);
-
-  const fetchEbook = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/ebooks/${ebookSlug}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch ebook");
-      }
-
-      const data = await response.json();
-      const ebook = data.story;
-
-      setFormData({
-        title: ebook.title,
-        slug: ebook.slug,
-        author: ebook.author,
-        description: ebook.description || "",
-        coverImage: ebook.coverImage || "",
-        genres: ebook.genres || "",
-        status: ebook.status,
-        purchaseLinks:
-          ebook.purchaseLinks.length > 0
-            ? ebook.purchaseLinks
-            : [{ store: "", url: "" }],
-      });
-      setOriginalSlug(ebook.slug || "");
-
-      setError(null);
-    } catch (error) {
-      console.error("Error fetching ebook:", error);
-      setError("Failed to load ebook data");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [loading, session, ebookSlug, fetchEbook]);
 
   const handleFormChange = (
     e: React.ChangeEvent<
@@ -181,18 +171,8 @@ export default function EditEbookPage() {
       setIsSubmitting(true);
       setError(null);
 
-      const response = await fetch(`/api/ebooks/${ebookSlug}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to update ebook");
-      }
+      // Use the server action to update the ebook
+      await updateEbook(ebookSlug, formData);
 
       // Show success message
       setFormSuccess(true);

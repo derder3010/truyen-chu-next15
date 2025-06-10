@@ -35,13 +35,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: { q?: string };
-}) {
-  const query = searchParams.q || "";
-
+export default async function SearchPage() {
   // Lấy tất cả truyện từ API để có thể tìm kiếm
   const { stories } = await getStories(1, 100); // Lấy 100 truyện để tìm kiếm (có thể điều chỉnh số lượng)
 
