@@ -27,7 +27,7 @@ function HeaderClient({ toggleSidebar }: { toggleSidebar: () => void }) {
         </button>
       </div>
       <div className="flex-1">
-        <span className="text-xl font-bold">Truyện Chữ Admin</span>
+        <span className="text-xl font-bold">Admin Dashboard</span>
       </div>
       <div className="flex-none">
         <UserInfoWrapper />

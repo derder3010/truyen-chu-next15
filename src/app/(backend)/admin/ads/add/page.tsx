@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
+import { clientCreateAdvertisement } from "@/lib/actions";
 
 export default function AddAdvertisementPage() {
   const router = useRouter();
@@ -17,7 +18,13 @@ export default function AddAdvertisementPage() {
     affiliateUrl: "",
     displayFrequency: 3,
     isActive: true,
-    type: "in-chapter",
+    type: "in-chapter" as
+      | "in-chapter"
+      | "priority"
+      | "banner"
+      | "loading"
+      | "ebook-waiting"
+      | "other",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,18 +84,14 @@ export default function AddAdvertisementPage() {
         throw new Error("Liên kết hình ảnh không hợp lệ");
       }
 
-      // Submit the form
-      const response = await fetch("/api/admin/ads", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      // Submit the form using server action
+      const response = await clientCreateAdvertisement({
+        ...formData,
+        type: formData.type,
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Có lỗi xảy ra khi tạo quảng cáo");
+      if ("error" in response) {
+        throw new Error(response.error as string);
       }
 
       // Redirect to ads list page

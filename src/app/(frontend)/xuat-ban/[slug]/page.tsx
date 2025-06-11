@@ -3,6 +3,7 @@ import { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 import BookDetailPage from "@/components/LicensedAndEbookComponents/BookDetailPage";
 import { APP_CONFIG } from "@/lib/config";
+import { clientGetLicensedStoryBySlug } from "@/lib/actions";
 
 // Add ISR with 2-hour revalidation
 export const revalidate = 7200;
@@ -14,13 +15,8 @@ type Props = {
 // Custom function để lấy thông tin truyện bản quyền theo slug
 async function getLicensedStoryBySlug(slug: string) {
   try {
-    // Import server-side API function
-    const { getLicensedStoryBySlug: fetchLicensedStoryBySlug } = await import(
-      "@/lib/api"
-    );
-
-    // Get story data
-    const story = await fetchLicensedStoryBySlug(slug);
+    // Use server action instead of importing API function
+    const story = await clientGetLicensedStoryBySlug(slug);
 
     if (!story) {
       return null;

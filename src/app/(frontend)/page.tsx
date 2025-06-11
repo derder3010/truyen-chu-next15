@@ -18,6 +18,9 @@ import {
   getStoriesByGenres,
 } from "@/lib/api";
 
+// Set revalidation time to 1 hour (3600 seconds)
+export const revalidate = 3600;
+
 // Metadata tĩnh cho trang chủ
 export const metadata: Metadata = {
   title: `${APP_CONFIG.APP_NAME} - Đọc truyện online, truyện chữ hay`,

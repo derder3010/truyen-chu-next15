@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
 import Image from "~image";
+import { adminGetAllNovels, adminDeleteNovel } from "@/lib/actions";
 
 // Novel type definition
 interface Novel {
@@ -64,21 +65,17 @@ function NovelsContent() {
 
     const status = searchParams.get("status");
     const search = searchParams.get("search");
-    const page = searchParams.get("page") || "1";
+    const page = parseInt(searchParams.get("page") || "1", 10);
 
     try {
-      const response = await fetch(
-        `/api/admin/novels?page=${page}${status ? `&status=${status}` : ""}${
-          search ? `&search=${search}` : ""
-        }`
-      );
+      // Use server action instead of API call
+      const data = await adminGetAllNovels(page, 10, status, search);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch novels");
+      if ("error" in data) {
+        throw new Error(data.error as string);
       }
 
-      const data = await response.json();
-      setNovels(data.novels);
+      setNovels(data.novels as Novel[]);
       setPagination(data.pagination);
       setActiveStatus(status);
     } catch (err) {
@@ -139,13 +136,11 @@ function NovelsContent() {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/admin/novels/${novelToDelete.id}`, {
-        method: "DELETE",
-      });
+      // Use server action instead of API call
+      const result = await adminDeleteNovel(novelToDelete.id);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete novel");
+      if (!result.success) {
+        throw new Error(result.error || "Failed to delete novel");
       }
 
       // Refresh the novels list

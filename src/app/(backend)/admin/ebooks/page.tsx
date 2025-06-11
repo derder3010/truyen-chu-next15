@@ -19,11 +19,11 @@ type Ebook = {
   description: string | null;
   coverImage: string | null;
   genres: string | null;
-  status: "ongoing" | "completed";
+  status: "ongoing" | "completed" | null;
   purchaseLinks: PurchaseLink[];
-  viewCount: number;
-  createdAt: number;
-  updatedAt: number;
+  viewCount: number | null;
+  createdAt: number | null;
+  updatedAt: number | null;
 };
 
 // Pagination type
@@ -70,25 +70,18 @@ function EbooksContent() {
 
     const status = searchParams.get("status");
     const search = searchParams.get("search");
-    const page = searchParams.get("page") || "1";
+    const page = parseInt(searchParams.get("page") || "1", 10);
 
     try {
-      const response = await fetch(
-        `/api/ebooks?page=${page}${status ? `&status=${status}` : ""}${
-          search ? `&search=${search}` : ""
-        }`
-      );
+      // Use server action instead of API endpoint
+      const { clientGetAllEbooks } = await import("@/lib/actions");
+      const data = await clientGetAllEbooks(page, 10, status, search);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch ebooks");
-      }
-
-      const data = await response.json();
       setEbooks(data.stories || []);
       setPagination(
         data.pagination || {
           total: data.stories?.length || 0,
-          page: parseInt(page, 10),
+          page: page,
           limit: 10,
           totalPages: Math.ceil((data.stories?.length || 0) / 10),
         }
@@ -152,12 +145,12 @@ function EbooksContent() {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/ebooks/${ebookToDelete.id}`, {
-        method: "DELETE",
-      });
+      // Use server action instead of API fetch
+      const { clientDeleteEbook } = await import("@/lib/actions");
+      const result = await clientDeleteEbook(ebookToDelete.id.toString());
 
-      if (!response.ok) {
-        throw new Error("Failed to delete ebook");
+      if (!result.success) {
+        throw new Error(result.error || "Failed to delete ebook");
       }
 
       // Refresh the ebooks list
@@ -496,4 +489,4 @@ export default function EbooksPage() {
       <EbooksContent />
     </Suspense>
   );
-} 
+}

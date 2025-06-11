@@ -2,7 +2,7 @@ import React from "react";
 import { notFound } from "next/navigation";
 import { Metadata, ResolvingMetadata } from "next";
 import EbookWaitingPage from "@/components/EbookWaitingPage";
-import { getEbookBySlug } from "@/lib/data/ebooks";
+import { getEbookBySlug } from "@/lib/api";
 import { APP_CONFIG } from "@/lib/config";
 
 // Add ISR with 2-hour revalidation

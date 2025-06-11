@@ -4,6 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
+import {
+  adminGetNovelById,
+  adminGetChapter,
+  adminUpdateChapter,
+  adminDeleteChapter,
+} from "@/lib/actions";
 
 // Function to convert Vietnamese characters to non-accented
 function removeVietnameseAccents(str: string) {
@@ -34,8 +40,9 @@ interface Chapter {
   content: string;
   slug: string;
   chapterNumber: number;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: number | null;
+  updatedAt: number | null;
+  viewCount?: number | null;
 }
 
 export default function EditChapterPage() {
@@ -68,26 +75,26 @@ export default function EditChapterPage() {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch novel data
-      const novelResponse = await fetch(`/api/admin/novels/${novelId}`);
-      if (!novelResponse.ok) {
-        throw new Error("Failed to fetch novel");
+      // Fetch novel data using server action
+      const novelData = await adminGetNovelById(Number(novelId));
+
+      if ("error" in novelData) {
+        throw new Error(novelData.error);
       }
 
-      const novelData = await novelResponse.json();
       setNovelTitle(novelData.novel.title || "");
 
-      // Fetch chapter data
-      const chapterResponse = await fetch(
-        `/api/admin/novels/${novelId}/chapters/${chapterId}`
+      // Fetch chapter data using server action
+      const chapterData = await adminGetChapter(
+        Number(novelId),
+        Number(chapterId)
       );
 
-      if (!chapterResponse.ok) {
-        throw new Error("Failed to fetch chapter");
+      if ("error" in chapterData) {
+        throw new Error(chapterData.error);
       }
 
-      const data = await chapterResponse.json();
-      const chapter: Chapter = data.chapter;
+      const chapter: Chapter = chapterData.chapter;
       setTitle(chapter.title);
       setContent(chapter.content);
       setChapterNumber(chapter.chapterNumber.toString());
@@ -137,24 +144,29 @@ export default function EditChapterPage() {
         throw new Error("Vui lòng điền đầy đủ thông tin chương");
       }
 
-      // Send to API
-      const response = await fetch(
-        `/api/admin/novels/${novelId}/chapters/${chapterId}`,
+      console.log("Updating chapter with data:", {
+        title,
+        content: content.substring(0, 100) + "...",
+        chapterNumber: parseInt(chapterNumber),
+        slug,
+      });
+
+      // Use server action to update chapter
+      const result = await adminUpdateChapter(
+        Number(novelId),
+        Number(chapterId),
         {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            content,
-            chapterNumber: parseInt(chapterNumber),
-            slug,
-          }),
+          title,
+          content,
+          chapterNumber: parseInt(chapterNumber),
+          slug,
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update chapter");
+      console.log("Update result:", result);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update chapter");
       }
 
       // Show success message
@@ -183,16 +195,14 @@ export default function EditChapterPage() {
 
     setIsDeletingChapter(true);
     try {
-      const response = await fetch(
-        `/api/admin/novels/${novelId}/chapters/${chapterId}`,
-        {
-          method: "DELETE",
-        }
+      // Use server action to delete chapter
+      const result = await adminDeleteChapter(
+        Number(novelId),
+        Number(chapterId)
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete chapter");
+      if (!result.success) {
+        throw new Error(result.error || "Failed to delete chapter");
       }
 
       // Redirect to novel detail page

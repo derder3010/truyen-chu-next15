@@ -1,22 +1,73 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { adminAddUser } from "@/lib/actions";
+import { adminGetUserById, adminUpdateUser } from "@/lib/actions";
 import { useRequireAdmin } from "@/lib/auth/client";
+import { UserRole } from "@/types/auth";
 
-export default function AddUserPage() {
+interface UserData {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  createdAt?: number;
+}
+
+export default function EditUserPage() {
   const router = useRouter();
-  const { loading } = useRequireAdmin();
+  const params = useParams();
+  const userId = params.id as string;
+  const { isAdmin, loading } = useRequireAdmin();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    role: "editor",
+    role: "editor" as UserRole,
   });
+
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function fetchUser() {
+      if (!userId || isNaN(Number(userId))) {
+        setError("ID người dùng không hợp lệ");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const result = await adminGetUserById(Number(userId));
+
+        if ("error" in result) {
+          throw new Error(result.error);
+        }
+
+        const user = result.user as UserData;
+        setFormData({
+          name: user.name,
+          email: user.email,
+          password: "",
+          role: user.role,
+        });
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        setError(
+          error instanceof Error ? error.message : "Failed to fetch user"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (isAdmin && !loading) {
+      fetchUser();
+    }
+  }, [userId, isAdmin, loading]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -31,13 +82,25 @@ export default function AddUserPage() {
     setError("");
 
     try {
-      // Use server action instead of API call
-      const result = await adminAddUser({
+      // Prepare update data
+      const updateData: {
+        name: string;
+        email: string;
+        password?: string;
+        role: UserRole;
+      } = {
         name: formData.name,
         email: formData.email,
-        password: formData.password,
-        role: formData.role as "admin" | "editor",
-      });
+        role: formData.role as UserRole,
+      };
+
+      // Only include password if provided
+      if (formData.password.trim()) {
+        updateData.password = formData.password;
+      }
+
+      // Use server action
+      const result = await adminUpdateUser(Number(userId), updateData);
 
       if ("error" in result) {
         throw new Error(result.error);
@@ -51,7 +114,7 @@ export default function AddUserPage() {
     }
   };
 
-  if (loading) {
+  if (loading || isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="loading loading-spinner loading-lg text-primary"></div>
@@ -79,7 +142,7 @@ export default function AddUserPage() {
           </svg>
           Quay lại
         </Link>
-        <h1 className="text-2xl font-bold">Thêm người dùng mới</h1>
+        <h1 className="text-2xl font-bold">Chỉnh sửa người dùng</h1>
       </div>
 
       <div className="card bg-base-100 shadow max-w-2xl">
@@ -136,7 +199,9 @@ export default function AddUserPage() {
 
             <div className="form-control w-full">
               <label htmlFor="password" className="label">
-                <span className="label-text">Mật khẩu</span>
+                <span className="label-text">
+                  Mật khẩu mới (để trống nếu không đổi)
+                </span>
               </label>
               <input
                 type="password"
@@ -145,7 +210,6 @@ export default function AddUserPage() {
                 value={formData.password}
                 onChange={handleChange}
                 className="input input-bordered w-full"
-                required
               />
             </div>
 
@@ -174,7 +238,7 @@ export default function AddUserPage() {
                 {isSubmitting ? (
                   <span className="loading loading-spinner loading-sm"></span>
                 ) : (
-                  "Lưu người dùng"
+                  "Cập nhật người dùng"
                 )}
               </button>
             </div>

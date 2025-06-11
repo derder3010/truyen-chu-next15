@@ -7,27 +7,42 @@ import useSWR from "swr";
 import TagIcon from "@/components/icons/TagIcon";
 import Pagination from "../Pagination";
 import BookCard from "./BookCard";
+import { clientGetEbooks, clientGetLicensedStories } from "@/lib/actions";
 
-// Fetcher function for SWR
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-// Define purchase link interface
-interface PurchaseLink {
-  name?: string;
-  store?: string;
-  url: string;
-}
+// Fetcher function for SWR using server actions
+const booksFetcher = async ([type, page, tag]: [
+  string,
+  number,
+  string | null
+]) => {
+  if (type === "ebook") {
+    const data = await clientGetEbooks(page, 10, null, null, tag);
+    return {
+      stories: data.stories as unknown as BookItem[],
+      pagination: data.pagination,
+    };
+  } else {
+    const data = await clientGetLicensedStories(page, 10, null, null, tag);
+    return {
+      stories: data.stories as unknown as BookItem[],
+      pagination: data.pagination,
+    };
+  }
+};
 
 export interface BookItem {
   id: string | number;
   title: string;
   author: string;
-  coverImage?: string;
-  genres: string[] | string;
-  description: string;
-  status: string;
+  coverImage?: string | null;
+  genres: string[] | string | null;
+  description: string | null;
+  status: string | "ongoing" | "completed" | null;
   slug: string;
-  purchaseLinks?: PurchaseLink[];
+  purchaseLinks: any; // Match DB schema
+  viewCount?: number | null;
+  createdAt?: number | null;
+  updatedAt?: number | null;
 }
 
 interface CategoryPageProps {
@@ -59,28 +74,26 @@ const CategoryPage: React.FC<CategoryPageProps> = ({
     ? parseInt(searchParams.get("page") || "1", 10)
     : 1;
 
-  // URL cho API tương ứng với loại trang
-  const apiUrl =
-    type === "ebook"
-      ? `/api/ebooks?${
-          selectedGenre ? `tag=${encodeURIComponent(selectedGenre)}&` : ""
-        }page=${currentPage}`
-      : `/api/licensed-stories?${
-          selectedGenre ? `tag=${encodeURIComponent(selectedGenre)}&` : ""
-        }page=${currentPage}`;
-
   // Base path dựa vào loại
   const basePath = type === "ebook" ? "/ebook" : "/xuat-ban";
 
-  // Sử dụng SWR để fetch dữ liệu theo thể loại và trang
-  const { data, error, isLoading } = useSWR(apiUrl, fetcher, {
-    fallbackData: {
-      stories: initialBooks,
-      pagination: initialPagination,
-    },
-    revalidateOnFocus: false,
-    dedupingInterval: 300000, // 5 phút cache
-  });
+  // Sử dụng SWR để fetch dữ liệu theo thể loại và trang với server actions
+  const { data, error, isLoading } = useSWR(
+    [type, currentPage, selectedGenre],
+    booksFetcher,
+    {
+      fallbackData: {
+        stories: initialBooks,
+        pagination: initialPagination,
+      },
+      revalidateOnFocus: false,
+      dedupingInterval: 300000, // 5 phút cache
+    }
+  ) as {
+    data: { stories: BookItem[]; pagination: any };
+    error: any;
+    isLoading: boolean;
+  };
 
   const books = data?.stories || initialBooks;
   const pagination = data?.pagination || initialPagination;

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BookItem } from "./CategoryPage";
 import { useRouter } from "next/navigation";
+import { clientGetRelatedBooks } from "@/lib/actions";
 
 interface BookDetailPageProps {
   book: BookItem;
@@ -55,7 +56,7 @@ const BookDetailPage: React.FC<BookDetailPageProps> = ({ book, type }) => {
     ? book.purchaseLinks
     : [];
 
-  // Fetch related books based on genres
+  // Fetch related books based on genres using server actions
   useEffect(() => {
     const fetchRelatedBooks = async () => {
       if (!genres.length) {
@@ -68,30 +69,16 @@ const BookDetailPage: React.FC<BookDetailPageProps> = ({ book, type }) => {
         // Lấy random 1 genre để tìm sách tương tự
         const randomGenre = genres[Math.floor(Math.random() * genres.length)];
 
-        // API endpoint khác nhau cho ebook và truyện xuất bản
-        const endpoint =
-          type === "ebook"
-            ? `/api/ebooks?tag=${encodeURIComponent(randomGenre)}&limit=6`
-            : `/api/licensed-stories?tag=${encodeURIComponent(
-                randomGenre
-              )}&limit=6`;
+        // Use server action instead of API endpoint
+        const relatedBooksList = await clientGetRelatedBooks(
+          randomGenre,
+          type,
+          6,
+          book.id
+        );
 
-        const response = await fetch(endpoint);
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch related books");
-        }
-
-        const data = await response.json();
-
-        // Lọc ra những sách không trùng với sách hiện tại
-        const filteredBooks = data.stories
-          ? data.stories.filter(
-              (relatedBook: BookItem) => relatedBook.id !== book.id
-            )
-          : [];
-
-        setRelatedBooks(filteredBooks);
+        // Use type assertion to fix type mismatch
+        setRelatedBooks(relatedBooksList as unknown as BookItem[]);
       } catch (error) {
         console.error("Error fetching related books:", error);
       } finally {

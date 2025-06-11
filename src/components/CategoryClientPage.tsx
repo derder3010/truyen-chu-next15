@@ -8,9 +8,12 @@ import StoryCard from "@/components/StoryCard";
 import { Story } from "@/types";
 import TagIcon from "@/components/icons/TagIcon";
 import Pagination from "./Pagination";
+import { clientGetStoriesByGenre } from "@/lib/actions";
 
-// Fetcher function for SWR
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+// Fetcher function for SWR using server action
+const genreFetcher = async ([tag, page]: [string | null, number]) => {
+  return clientGetStoriesByGenre(tag, page);
+};
 
 interface CategoryClientPageProps {
   initialStories: Story[];
@@ -37,16 +40,15 @@ const CategoryClientPage: React.FC<CategoryClientPageProps> = ({
     ? parseInt(searchParams.get("page") || "1", 10)
     : 1;
 
-  // Sử dụng SWR để fetch dữ liệu theo thể loại và trang
+  // Use SWR with server action
   const { data, error, isLoading } = useSWR(
-    `/api/genres?${
-      selectedGenre ? `tag=${encodeURIComponent(selectedGenre)}&` : ""
-    }page=${currentPage}`,
-    fetcher,
+    [selectedGenre, currentPage],
+    genreFetcher,
     {
       fallbackData: {
         stories: initialStories,
         pagination: initialPagination,
+        genreCount,
       },
       revalidateOnFocus: false,
       dedupingInterval: 300000, // 5 phút cache
@@ -55,6 +57,7 @@ const CategoryClientPage: React.FC<CategoryClientPageProps> = ({
 
   const stories = data?.stories || initialStories;
   const pagination = data?.pagination || initialPagination;
+  const genreCounts = data?.genreCount || genreCount;
 
   const handlePageChange = (page: number) => {
     // Chuyển hướng đến trang mới với thể loại được chọn (nếu có)
@@ -90,8 +93,8 @@ const CategoryClientPage: React.FC<CategoryClientPageProps> = ({
                 } py-3 cursor-pointer transition-colors`}
               >
                 {genre}
-                {genreCount[genre] !== undefined && (
-                  <span className="ml-1">({genreCount[genre]})</span>
+                {genreCounts[genre] !== undefined && (
+                  <span className="ml-1">({genreCounts[genre]})</span>
                 )}
               </Link>
             ))}

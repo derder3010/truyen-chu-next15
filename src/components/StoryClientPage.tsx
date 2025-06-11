@@ -8,9 +8,12 @@ import useSWR from "swr";
 import NotFoundPage from "@/app/NotFound";
 import Pagination from "@/components/Pagination";
 import { Chapter, Story } from "@/types";
+import { clientGetChapters, clientGetRelatedStories } from "@/lib/actions";
 
-// Fetcher function for SWR
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+// Fetcher function for SWR using server action instead of API
+const chaptersFetcher = async ([storyId, page]: [string, number]) => {
+  return clientGetChapters(storyId, page);
+};
 
 interface PaginationData {
   total: number;
@@ -37,10 +40,10 @@ export default function StoryClientPage({
   const [relatedStories, setRelatedStories] = useState<Story[]>([]);
   const [isLoadingRelated, setIsLoadingRelated] = useState(true);
 
-  // Move useSWR hook outside of conditional - always call it with a proper URL or null
+  // Use SWR with server action
   const { data } = useSWR(
-    story ? `/api/chapters?storyId=${story.id}&page=${currentPage}` : null,
-    fetcher,
+    story ? [story.id, currentPage] : null,
+    chaptersFetcher,
     {
       fallbackData: {
         chapters: initialChapters,
@@ -51,24 +54,15 @@ export default function StoryClientPage({
     }
   );
 
-  // Move useEffect outside of conditional
+  // Fetch related stories using server action
   useEffect(() => {
-    // Only execute the fetch inside the useEffect if story exists
     if (!story) return;
 
     const fetchRelatedStories = async () => {
       try {
         setIsLoadingRelated(true);
-        const response = await fetch(
-          `/api/stories/related?storyId=${story.id}&limit=6`
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch related stories");
-        }
-
-        const data = await response.json();
-        setRelatedStories(data.stories || []);
+        const stories = await clientGetRelatedStories(story.id);
+        setRelatedStories(stories || []);
       } catch (error) {
         console.error("Error fetching related stories:", error);
       } finally {

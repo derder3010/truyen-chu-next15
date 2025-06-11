@@ -3,6 +3,7 @@ import { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 import BookDetailPage from "@/components/LicensedAndEbookComponents/BookDetailPage";
 import { APP_CONFIG } from "@/lib/config";
+import { clientGetEbookBySlug } from "@/lib/actions";
 
 // Add ISR with 2-hour revalidation
 export const revalidate = 7200;
@@ -14,11 +15,8 @@ type Props = {
 // Custom function để lấy thông tin ebook theo slug
 async function getEbookBySlug(slug: string) {
   try {
-    // Import server-side API function
-    const { getEbookBySlug: fetchEbookBySlug } = await import("@/lib/api");
-
-    // Get ebook data
-    const ebook = await fetchEbookBySlug(slug);
+    // Use server action instead of importing API function
+    const ebook = await clientGetEbookBySlug(slug);
 
     if (!ebook) {
       return null;

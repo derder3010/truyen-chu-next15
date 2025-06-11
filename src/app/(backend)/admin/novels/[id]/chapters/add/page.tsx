@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
+import {
+  adminGetNovelById,
+  adminGetChapters,
+  adminAddChapter,
+} from "@/lib/actions";
 
 // Function to convert Vietnamese characters to non-accented
 function removeVietnameseAccents(str: string) {
@@ -52,24 +57,22 @@ export default function AddChapterPage() {
   // Fetch novel data to display title
   const fetchNovel = useCallback(async () => {
     try {
-      const response = await fetch(`/api/admin/novels/${novelId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch novel");
+      // Use server action to fetch novel data
+      const data = await adminGetNovelById(Number(novelId));
+
+      if ("error" in data) {
+        throw new Error(data.error);
       }
 
-      const data = await response.json();
       setNovelTitle(data.novel.title || "");
 
       // Fetch existing chapters to determine next chapter number
-      const chaptersResponse = await fetch(
-        `/api/admin/novels/${novelId}/chapters`
-      );
+      const chaptersData = await adminGetChapters(Number(novelId));
 
-      if (!chaptersResponse.ok) {
-        throw new Error("Failed to fetch chapters");
+      if ("error" in chaptersData) {
+        throw new Error(chaptersData.error);
       }
 
-      const chaptersData = await chaptersResponse.json();
       const chapters = chaptersData.chapters || [];
 
       // Calculate next chapter number
@@ -127,21 +130,26 @@ export default function AddChapterPage() {
         throw new Error("Vui lòng điền đầy đủ thông tin chương");
       }
 
-      // Send to API
-      const response = await fetch(`/api/admin/novels/${novelId}/chapters`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          content,
-          chapterNumber: parseInt(chapterNumber),
-          slug,
-        }),
+      console.log("Sending chapter data:", {
+        title,
+        content: content.substring(0, 100) + "...", // Log only beginning of content
+        chapterNumber: parseInt(chapterNumber),
+        slug,
+        novelId,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to add chapter");
+      // Use server action to add chapter
+      const result = await adminAddChapter(Number(novelId), {
+        title,
+        content,
+        chapterNumber: parseInt(chapterNumber),
+        slug,
+      });
+
+      console.log("Server action result:", result);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to add chapter");
       }
 
       // Show success message

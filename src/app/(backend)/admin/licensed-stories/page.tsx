@@ -19,11 +19,11 @@ type LicensedStory = {
   description: string | null;
   coverImage: string | null;
   genres: string | null;
-  status: "ongoing" | "completed";
+  status: "ongoing" | "completed" | null;
   purchaseLinks: PurchaseLink[];
-  viewCount: number;
-  createdAt: number;
-  updatedAt: number;
+  viewCount: number | null;
+  createdAt: number | null;
+  updatedAt: number | null;
 };
 
 // Pagination type
@@ -72,25 +72,18 @@ function LicensedStoriesContent() {
 
     const status = searchParams.get("status");
     const search = searchParams.get("search");
-    const page = searchParams.get("page") || "1";
+    const page = parseInt(searchParams.get("page") || "1", 10);
 
     try {
-      const response = await fetch(
-        `/api/licensed-stories?page=${page}${
-          status ? `&status=${status}` : ""
-        }${search ? `&search=${search}` : ""}`
-      );
+      // Use server action instead of API endpoint
+      const { clientGetAllLicensedStories } = await import("@/lib/actions");
+      const data = await clientGetAllLicensedStories(page, 10, status, search);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch stories");
-      }
-
-      const data = await response.json();
       setStories(data.stories || []);
       setPagination(
         data.pagination || {
           total: data.stories?.length || 0,
-          page: parseInt(page, 10),
+          page: page,
           limit: 10,
           totalPages: Math.ceil((data.stories?.length || 0) / 10),
         }
@@ -156,15 +149,14 @@ function LicensedStoriesContent() {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(
-        `/api/licensed-stories/${storyToDelete.id}`,
-        {
-          method: "DELETE",
-        }
+      // Use server action instead of API fetch
+      const { clientDeleteLicensedStory } = await import("@/lib/actions");
+      const result = await clientDeleteLicensedStory(
+        storyToDelete.id.toString()
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to delete story");
+      if (!result.success) {
+        throw new Error(result.error || "Failed to delete story");
       }
 
       // Refresh the stories list
@@ -174,7 +166,7 @@ function LicensedStoriesContent() {
       setStoryToDelete(null);
     } catch (error) {
       console.error("Error deleting story:", error);
-      setError("Không thể xóa truyện bản quyền. Vui lòng thử lại sau.");
+      setError("Không thể xóa truyện. Vui lòng thử lại sau.");
     } finally {
       setIsDeleting(false);
     }

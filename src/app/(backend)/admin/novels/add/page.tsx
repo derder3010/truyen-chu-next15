@@ -67,6 +67,11 @@ export default function AddNovelPage() {
     setFormError("");
 
     try {
+      // Validate form
+      if (!title || !author || !description) {
+        throw new Error("Vui lòng điền đầy đủ thông tin bắt buộc");
+      }
+
       // Create a FormData object to handle file upload
       const formData = new FormData();
       formData.append("title", title);
@@ -80,15 +85,12 @@ export default function AddNovelPage() {
         formData.append("coverImage", coverImage);
       }
 
-      // Send data to the API
-      const response = await fetch("/api/admin/novels", {
-        method: "POST",
-        body: formData,
-      });
+      // Use server action instead of API call
+      const { adminAddNovel } = await import("@/lib/actions");
+      const result = await adminAddNovel(formData);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to add novel");
+      if (!result.success) {
+        throw new Error(result.error || "Failed to add novel");
       }
 
       // Show success message

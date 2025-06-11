@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
+import {
+  clientGetAdvertisementById,
+  clientUpdateAdvertisement,
+} from "@/lib/actions";
 
 interface EditAdvertisementPageProps {
   params: {
@@ -36,7 +40,13 @@ export default function EditAdvertisementPage({
     affiliateUrl: "",
     displayFrequency: 3,
     isActive: true,
-    type: "in-chapter",
+    type: "in-chapter" as
+      | "in-chapter"
+      | "priority"
+      | "banner"
+      | "loading"
+      | "ebook-waiting"
+      | "other",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,24 +59,26 @@ export default function EditAdvertisementPage({
 
     const fetchAdData = async () => {
       try {
-        const response = await fetch(`/api/admin/ads/${adId}`);
+        const data = await clientGetAdvertisementById(adId);
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error("Không tìm thấy quảng cáo");
-          }
-          throw new Error("Có lỗi xảy ra khi tải dữ liệu quảng cáo");
+        if ("error" in data) {
+          throw new Error(data.error as string);
         }
 
-        const data = await response.json();
         setFormData({
           title: data.title,
           description: data.description || "",
           imageUrl: data.imageUrl || "",
           affiliateUrl: data.affiliateUrl,
-          displayFrequency: data.displayFrequency,
-          isActive: data.isActive,
-          type: data.type || "in-chapter",
+          displayFrequency: data.displayFrequency ?? 3,
+          isActive: data.isActive ?? true,
+          type: (data.type || "in-chapter") as
+            | "in-chapter"
+            | "priority"
+            | "banner"
+            | "loading"
+            | "ebook-waiting"
+            | "other",
         });
       } catch (err) {
         console.error("Error fetching advertisement:", err);
@@ -138,18 +150,14 @@ export default function EditAdvertisementPage({
         throw new Error("Liên kết hình ảnh không hợp lệ");
       }
 
-      // Submit the form
-      const response = await fetch(`/api/admin/ads/${adId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      // Submit the form using server action
+      const response = await clientUpdateAdvertisement(adId, {
+        ...formData,
+        type: formData.type,
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Có lỗi xảy ra khi cập nhật quảng cáo");
+      if ("error" in response) {
+        throw new Error(response.error as string);
       }
 
       // Redirect to ads list page

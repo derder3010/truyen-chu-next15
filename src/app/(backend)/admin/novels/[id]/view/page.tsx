@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
 import Image from "~image";
+import {
+  adminGetNovelById,
+  adminDeleteNovel,
+  adminGetChapters,
+} from "@/lib/actions";
 
 // Novel type definition
 interface Novel {
@@ -13,12 +18,12 @@ interface Novel {
   slug: string;
   author: string | null;
   description: string | null;
-  status: string;
+  status: string | null;
   coverImage: string | null;
   genres: string | null;
-  viewCount: number;
-  createdAt: number;
-  updatedAt: number;
+  viewCount: number | null;
+  createdAt: number | null;
+  updatedAt: number | null;
 }
 
 // Chapter type definition
@@ -27,9 +32,11 @@ interface Chapter {
   novelId: number;
   title: string;
   content: string;
+  slug?: string;
   chapterNumber: number;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: number | null;
+  updatedAt: number | null;
+  viewCount?: number | null;
 }
 
 // Pagination type
@@ -41,7 +48,7 @@ interface Pagination {
 }
 
 // Helper function to format Unix timestamp to readable date
-const formatDate = (timestamp: number): string => {
+const formatDate = (timestamp: number | null): string => {
   if (!timestamp) return "N/A";
 
   try {
@@ -80,30 +87,21 @@ export default function NovelDetailPage() {
   const fetchChapters = useCallback(
     async (page: number, limit: number) => {
       try {
-        const chaptersResponse = await fetch(
-          `/api/admin/novels/${novelId}/chapters?page=${page}&limit=${limit}`
+        // Use server action instead of API call
+        const chaptersData = await adminGetChapters(
+          Number(novelId),
+          page,
+          limit
         );
 
-        if (!chaptersResponse.ok) {
-          throw new Error("Failed to fetch chapters");
+        if ("error" in chaptersData) {
+          throw new Error(chaptersData.error);
         }
-
-        const chaptersData = await chaptersResponse.json();
 
         setChapters(chaptersData.chapters);
 
-        // Set pagination if available in response
-        if (chaptersData.pagination) {
-          setPagination(chaptersData.pagination);
-        } else {
-          // Calculate pagination if not provided
-          setPagination({
-            total: chaptersData.chapters.length,
-            page,
-            limit,
-            totalPages: Math.ceil(chaptersData.chapters.length / limit),
-          });
-        }
+        // Set pagination
+        setPagination(chaptersData.pagination);
       } catch (error) {
         console.error("Error fetching chapters:", error);
         setError("Không thể tải danh sách chương. Vui lòng thử lại sau.");
@@ -116,12 +114,13 @@ export default function NovelDetailPage() {
   const fetchNovel = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/novels/${novelId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch novel");
+      // Use server action instead of API call
+      const data = await adminGetNovelById(Number(novelId));
+
+      if ("error" in data) {
+        throw new Error(data.error);
       }
 
-      const data = await response.json();
       setNovel(data.novel);
 
       // Fetch chapters with pagination
@@ -162,13 +161,11 @@ export default function NovelDetailPage() {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/admin/novels/${novelId}`, {
-        method: "DELETE",
-      });
+      // Use server action instead of API call
+      const result = await adminDeleteNovel(Number(novelId));
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete novel");
+      if (!result.success) {
+        throw new Error(result.error || "Failed to delete novel");
       }
 
       // Redirect to novels list
@@ -376,9 +373,11 @@ export default function NovelDetailPage() {
                     <div className="flex justify-between">
                       <span className="text-base-content/70">Cập nhật:</span>
                       <span className="font-medium">
-                        {new Date(novel.updatedAt * 1000).toLocaleDateString(
-                          "vi-VN"
-                        )}
+                        {novel.updatedAt
+                          ? new Date(novel.updatedAt * 1000).toLocaleDateString(
+                              "vi-VN"
+                            )
+                          : "Chưa cập nhật"}
                       </span>
                     </div>
                   </div>

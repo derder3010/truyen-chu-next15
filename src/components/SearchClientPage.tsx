@@ -8,9 +8,12 @@ import SearchResultItem from "@/components/SearchResultItem";
 import { Story } from "@/types";
 import MiniSearch from "minisearch";
 import { createSearchIndex } from "@/lib/search";
+import { clientSearch } from "@/lib/actions";
 
-// Fetcher function for SWR
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+// Fetcher function for SWR using server action
+const searchFetcher = async (query: string) => {
+  return clientSearch(query);
+};
 
 interface SearchClientPageProps {
   initialStories: Story[]; // Các truyện ban đầu từ server component
@@ -44,10 +47,10 @@ function SearchContent({ initialStories }: SearchClientPageProps) {
     }
   }, [initialStories, miniSearchClient]);
 
-  // SWR hook cho tìm kiếm
+  // SWR hook for search using server action
   const { data, error, isLoading } = useSWR(
-    searchTerm ? `/api/search?q=${encodeURIComponent(searchTerm)}` : null,
-    fetcher,
+    searchTerm ? searchTerm : null,
+    searchFetcher,
     {
       fallbackData: {
         stories: initialQuery

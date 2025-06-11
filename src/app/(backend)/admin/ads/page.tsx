@@ -5,6 +5,11 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
 import Image from "~image";
+import {
+  clientGetAdvertisements,
+  clientUpdateAdvertisement,
+  clientDeleteAdvertisement,
+} from "@/lib/actions";
 
 // Advertisement type definition
 interface Advertisement {
@@ -13,13 +18,20 @@ interface Advertisement {
   description: string | null;
   imageUrl: string | null;
   affiliateUrl: string;
-  impressionCount: number;
-  clickCount: number;
-  isActive: boolean;
-  displayFrequency: number;
-  createdAt: number;
-  updatedAt: number;
-  type?: string;
+  impressionCount: number | null;
+  clickCount: number | null;
+  isActive: boolean | null;
+  displayFrequency: number | null;
+  createdAt: number | null;
+  updatedAt: number | null;
+  type?:
+    | "in-chapter"
+    | "priority"
+    | "banner"
+    | "loading"
+    | "ebook-waiting"
+    | "other"
+    | null;
 }
 
 // Pagination type
@@ -67,25 +79,19 @@ function AdsContent() {
 
     const status = searchParams.get("status");
     const search = searchParams.get("search");
-    const page = searchParams.get("page") || "1";
+    const page = parseInt(searchParams.get("page") || "1", 10);
 
     try {
-      const response = await fetch(
-        `/api/admin/ads?page=${page}${status ? `&status=${status}` : ""}${
-          search ? `&search=${search}` : ""
-        }`
-      );
+      const data = await clientGetAdvertisements(page, 10, status, search);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch advertisements");
+      if ("error" in data) {
+        throw new Error(data.error as string);
       }
-
-      const data = await response.json();
 
       // Initialize with default empty values
       const defaultPagination = {
         total: 0,
-        page: parseInt(page, 10),
+        page: page,
         limit: 10,
         totalPages: 0,
       };
@@ -110,7 +116,7 @@ function AdsContent() {
       setAds([]);
       setPagination({
         total: 0,
-        page: parseInt(page, 10),
+        page: page,
         limit: 10,
         totalPages: 0,
       });
@@ -166,19 +172,12 @@ function AdsContent() {
   // Toggle ad status
   const toggleAdStatus = async (id: number, currentStatus: boolean) => {
     try {
-      const response = await fetch(`/api/admin/ads/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ isActive: !currentStatus }),
+      const response = await clientUpdateAdvertisement(id, {
+        isActive: !currentStatus,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || "Failed to update advertisement status"
-        );
+      if ("error" in response) {
+        throw new Error(response.error as string);
       }
 
       // Refresh the ads list
@@ -197,13 +196,10 @@ function AdsContent() {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/admin/ads/${adToDelete.id}`, {
-        method: "DELETE",
-      });
+      const response = await clientDeleteAdvertisement(adToDelete.id);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete advertisement");
+      if ("error" in response) {
+        throw new Error(response.error as string);
       }
 
       // Refresh the ads list
@@ -456,10 +452,15 @@ function AdsContent() {
                             {!ad.type && "Trong chương"}
                           </span>
                         </td>
-                        <td>{ad.impressionCount.toLocaleString("vi-VN")}</td>
-                        <td>{ad.clickCount.toLocaleString("vi-VN")}</td>
                         <td>
-                          {calculateCTR(ad.impressionCount, ad.clickCount)}
+                          {(ad.impressionCount || 0).toLocaleString("vi-VN")}
+                        </td>
+                        <td>{(ad.clickCount || 0).toLocaleString("vi-VN")}</td>
+                        <td>
+                          {calculateCTR(
+                            ad.impressionCount || 0,
+                            ad.clickCount || 0
+                          )}
                         </td>
                         <td>
                           <div className="flex items-center gap-2">
@@ -478,7 +479,9 @@ function AdsContent() {
                           <div className="flex items-center gap-1">
                             <button
                               className="btn btn-ghost btn-xs"
-                              onClick={() => toggleAdStatus(ad.id, ad.isActive)}
+                              onClick={() =>
+                                toggleAdStatus(ad.id, ad.isActive || false)
+                              }
                             >
                               {ad.isActive ? "Ẩn" : "Hiển thị"}
                             </button>

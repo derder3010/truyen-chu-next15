@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
 import Image from "~image";
+import { adminGetNovelById, adminDeleteNovel } from "@/lib/actions";
 
 // Function to convert Vietnamese characters to non-accented
 function removeVietnameseAccents(str: string) {
@@ -33,14 +34,14 @@ type Novel = {
   slug: string;
   author: string | null;
   description: string | null;
-  status: string;
+  status: string | null;
   genre: string | null;
   genres: string | null;
   youtubeEmbed: string | null;
   coverImage: string | null;
-  viewCount: number;
-  createdAt: number;
-  updatedAt: number;
+  viewCount: number | null;
+  createdAt: number | null;
+  updatedAt: number | null;
 };
 
 export default function EditNovelPage() {
@@ -72,12 +73,13 @@ export default function EditNovelPage() {
   const fetchNovel = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/novels/${novelId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch novel");
+      // Use server action instead of API call
+      const data = await adminGetNovelById(Number(novelId));
+
+      if ("error" in data) {
+        throw new Error(data.error);
       }
 
-      const data = await response.json();
       const novel: Novel = data.novel;
 
       // Set form fields
@@ -185,13 +187,11 @@ export default function EditNovelPage() {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/admin/novels/${novelId}`, {
-        method: "DELETE",
-      });
+      // Use server action instead of API call
+      const result = await adminDeleteNovel(Number(novelId));
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete novel");
+      if (!result.success) {
+        throw new Error(result.error || "Failed to delete novel");
       }
 
       // Show success message and redirect

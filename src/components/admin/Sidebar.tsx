@@ -13,8 +13,7 @@ export function Sidebar() {
   };
 
   const navItems = [
-    { path: "/admin", label: "Trang chủ", icon: "home" },
-    { path: "/admin/dashboard", label: "Bảng điều khiển", icon: "dashboard" },
+    { path: "/admin", label: "Bảng điều khiển", icon: "dashboard" },
     { path: "/admin/novels", label: "Truyện", icon: "book" },
     {
       path: "/admin/licensed-stories",
