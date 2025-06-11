@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "@/lib/auth/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "~image";
 
 // Function to convert Vietnamese characters to non-accented
 function removeVietnameseAccents(str: string) {
@@ -41,11 +42,16 @@ export default function AddLicensedStoryPage() {
     slug: "",
     author: "",
     description: "",
-    coverImage: "",
     genres: "",
     status: "ongoing" as "ongoing" | "completed",
     purchaseLinks: [{ store: "", url: "" }],
   });
+
+  // Image handling state - ensure these are never undefined
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [imageInputType, setImageInputType] = useState<"file" | "url">("file");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const handleFormChange = (
     e: React.ChangeEvent<
@@ -57,6 +63,24 @@ export default function AddLicensedStoryPage() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  // Handle switching between image input types
+  const handleImageTypeChange = (type: "file" | "url") => {
+    // Reset relevant values when switching
+    if (type === "file") {
+      setCoverImageUrl("");
+      // Only reset preview if there's no file selected
+      if (!coverImage) {
+        setPreviewUrl(null);
+      }
+    } else {
+      // When switching to URL
+      setCoverImage(null);
+      // Clear preview unless we already have a URL
+      setPreviewUrl(coverImageUrl || null);
+    }
+    setImageInputType(type);
   };
 
   // Generate slug when title changes
@@ -96,6 +120,33 @@ export default function AddLicensedStoryPage() {
     });
   };
 
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setCoverImage(file);
+      // Create a preview URL for the selected file
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  // Update preview when URL changes
+  useEffect(() => {
+    // Only update preview from URL when in URL mode and when URL changes
+    if (imageInputType === "url") {
+      setPreviewUrl(coverImageUrl || null);
+    }
+  }, [coverImageUrl, imageInputType]);
+
+  // Clean up preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   // Kiểm tra xác thực và phân quyền admin
   useEffect(() => {
     if (!loading) {
@@ -113,17 +164,32 @@ export default function AddLicensedStoryPage() {
       setIsSubmitting(true);
       setError(null);
 
-      const response = await fetch("/api/licensed-stories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      // Create FormData to handle file uploads
+      const formDataObj = new FormData();
+      formDataObj.append("title", formData.title);
+      formDataObj.append("slug", formData.slug);
+      formDataObj.append("author", formData.author);
+      formDataObj.append("description", formData.description);
+      formDataObj.append("genres", formData.genres);
+      formDataObj.append("status", formData.status);
+      formDataObj.append(
+        "purchaseLinks",
+        JSON.stringify(formData.purchaseLinks)
+      );
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to create story");
+      // Handle image based on input type
+      if (imageInputType === "file" && coverImage) {
+        formDataObj.append("coverImage", coverImage);
+      } else if (imageInputType === "url" && coverImageUrl) {
+        formDataObj.append("coverImageUrl", coverImageUrl);
+      }
+
+      // Import and use server action
+      const { createLicensedStory } = await import("@/lib/actions");
+      const result = await createLicensedStory(formDataObj);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to create story");
       }
 
       // Show success message
@@ -290,15 +356,76 @@ export default function AddLicensedStoryPage() {
 
                 <div className="form-control w-full">
                   <label className="label">
-                    <span className="label-text">URL ảnh bìa</span>
+                    <span className="label-text">Ảnh bìa</span>
                   </label>
-                  <input
-                    type="text"
-                    name="coverImage"
-                    value={formData.coverImage}
-                    onChange={handleFormChange}
-                    className="input input-bordered w-full mt-2"
-                  />
+
+                  <div className="flex flex-col gap-2">
+                    <div className="tabs tabs-boxed inline-flex w-fit mb-2">
+                      <a
+                        className={`tab ${
+                          imageInputType === "file" ? "tab-active" : ""
+                        }`}
+                        onClick={() => handleImageTypeChange("file")}
+                      >
+                        Tải lên ảnh
+                      </a>
+                      <a
+                        className={`tab ${
+                          imageInputType === "url" ? "tab-active" : ""
+                        }`}
+                        onClick={() => handleImageTypeChange("url")}
+                      >
+                        Đường dẫn URL
+                      </a>
+                    </div>
+
+                    {/* File input - always rendered but conditionally displayed */}
+                    <div
+                      style={{
+                        display: imageInputType === "file" ? "block" : "none",
+                      }}
+                    >
+                      <input
+                        type="file"
+                        className="file-input file-input-bordered w-full"
+                        onChange={handleFileChange}
+                        accept="image/*"
+                      />
+                    </div>
+
+                    {/* URL input - always rendered but conditionally displayed */}
+                    <div
+                      style={{
+                        display: imageInputType === "url" ? "block" : "none",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        className="input input-bordered w-full"
+                        placeholder="Nhập URL hình ảnh"
+                        value={coverImageUrl || ""}
+                        onChange={(e) => setCoverImageUrl(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Image Preview */}
+                    {previewUrl && (
+                      <div className="mt-4">
+                        <p className="text-sm mb-2">Xem trước:</p>
+                        <div className="avatar">
+                          <div className="w-40 rounded">
+                            <Image
+                              src={previewUrl}
+                              alt="Cover preview"
+                              width={160}
+                              height={160}
+                              className="object-cover"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="form-control w-full">

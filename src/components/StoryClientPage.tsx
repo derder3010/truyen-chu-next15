@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "~image";
 import useSWR from "swr";
-import NotFoundPage from "@/app/NotFound";
+import { notFound } from "next/navigation";
 import Pagination from "@/components/Pagination";
 import { Chapter, Story } from "@/types";
 import { clientGetChapters, clientGetRelatedStories } from "@/lib/actions";
+import HorizontalAdBanner from "./HorizontalAdBanner";
 
 // Fetcher function for SWR using server action instead of API
 const chaptersFetcher = async ([storyId, page]: [string, number]) => {
@@ -78,7 +79,7 @@ export default function StoryClientPage({
 
   // Handle not found case - move this AFTER all hooks
   if (!story) {
-    return <NotFoundPage />;
+    return notFound();
   }
 
   const handlePageChange = (page: number) => {
@@ -254,13 +255,13 @@ export default function StoryClientPage({
           <div className="mb-6">
             <div className="flex flex-wrap gap-2">
               <Link
-                href={`/truyen/${story.slug}/1`}
+                href={`/truyen/${story.slug}/chuong-1`}
                 className="btn btn-info flex-1 lg:flex-none"
               >
                 <span className="text-xs sm:text-sm">Đọc từ đầu</span>
               </Link>
               <Link
-                href={`/truyen/${story.slug}/${story.totalChapters}`}
+                href={`/truyen/${story.slug}/chuong-${story.totalChapters}`}
                 className="btn btn-success flex-1 lg:flex-none"
               >
                 <span className="text-xs sm:text-sm">Đọc mới nhất</span>
@@ -303,7 +304,10 @@ export default function StoryClientPage({
                           <tr key={chapter.id} className="hover:bg-base-200">
                             <td>
                               <Link
-                                href={`/truyen/${story.slug}/${chapter.chapterNumber}`}
+                                href={`/truyen/${story.slug}/${
+                                  chapter.slug ||
+                                  `chuong-${chapter.chapterNumber}`
+                                }`}
                                 className="block w-full hover:text-primary"
                               >
                                 Chương {chapter.chapterNumber}: {chapter.title}
@@ -334,6 +338,8 @@ export default function StoryClientPage({
           </div>
         </div>
       </div>
+
+      <HorizontalAdBanner adType="banner" position="content" />
 
       {/* Có thể bạn quan tâm */}
       <div className="card bg-base-100 shadow-lg mt-8">

@@ -18,6 +18,7 @@ import { createSearchIndex, search } from "./search";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { UserRole } from "@/types/auth";
+import { downloadAndUploadToR2, uploadFileToR2, deleteFileFromR2 } from "./r2";
 
 // Simple revalidation functions
 async function revalidateStory(slug: string) {
@@ -88,6 +89,7 @@ function formatChapter(dbChapter: DbChapterResult): Chapter {
     id: String(dbChapter.id),
     storyId: String(dbChapter.novelId),
     storySlug: "", // Will be populated separately if needed
+    slug: dbChapter.slug,
     chapterNumber: dbChapter.chapterNumber,
     title: dbChapter.title,
     content: dbChapter.content,
@@ -931,26 +933,126 @@ export async function adminDeleteNovel(id: number) {
     }
 
     // Check if the novel exists
-    const existingNovel = await db.query.stories.findFirst({
+    const novel = await db.query.stories.findFirst({
       where: eq(stories.id, id),
     });
 
-    if (!existingNovel) {
+    if (!novel) {
       return { success: false, error: "Novel not found" };
+    }
+
+    // Try to delete the cover image from R2 if it exists
+    if (novel.coverImage) {
+      try {
+        await deleteFileFromR2(novel.coverImage);
+      } catch (imageError) {
+        console.error("Error deleting cover image:", imageError);
+        // Continue with novel deletion even if image deletion fails
+      }
     }
 
     // Delete the novel
     await db.delete(stories).where(eq(stories.id, id));
 
-    return {
-      success: true,
-      message: "Novel deleted successfully",
-    };
+    // Note: In a real app, we would also handle deleting chapters,
+    // cleaning up related data, and removing image files
+
+    return { success: true };
   } catch (error) {
     console.error("Error deleting novel:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete novel",
+    };
+  }
+}
+
+// Update an existing novel
+export async function adminUpdateNovel(id: number, formData: FormData) {
+  try {
+    // Check authentication and authorization
+    const session = await getSession();
+    if (!session || session.user.role !== "admin") {
+      return { success: false, error: "Unauthorized: Admin access required" };
+    }
+
+    // Check if the novel exists
+    const novel = await db.query.stories.findFirst({
+      where: eq(stories.id, id),
+    });
+
+    if (!novel) {
+      return { success: false, error: "Novel not found" };
+    }
+
+    // Extract form data
+    const title = formData.get("title") as string;
+    const slug = formData.get("slug") as string;
+    const author = formData.get("author") as string;
+    const status = formData.get("status") as string;
+    const description = formData.get("description") as string;
+    const genre = formData.get("genre") as string;
+    const youtubeEmbed = formData.get("youtubeEmbed") as string;
+    const coverImageUrl = formData.get("coverImageUrl") as string;
+    const coverImage = formData.get("coverImage") as File;
+
+    // Validate required fields
+    if (!title || !slug || !author || !description) {
+      return { success: false, error: "Missing required fields" };
+    }
+
+    // Prepare update data
+    const updateData: Record<string, any> = {
+      title,
+      slug,
+      author,
+      description,
+      genres: genre || null,
+      youtubeEmbed: youtubeEmbed || null,
+      status:
+        status === "paused" ? "ongoing" : (status as "ongoing" | "completed"),
+      updatedAt: Math.floor(Date.now() / 1000),
+    };
+
+    // Handle cover image if it's being updated
+    try {
+      if (coverImageUrl) {
+        // If direct URL is provided, download and upload to R2
+        updateData.coverImage = await downloadAndUploadToR2(
+          coverImageUrl,
+          "novels"
+        );
+      } else if (coverImage && coverImage.size > 0) {
+        // If file is provided, upload directly to R2
+        updateData.coverImage = await uploadFileToR2(coverImage, "novels");
+      }
+      // If no new image is provided, keep the existing one
+    } catch (imageError) {
+      console.error("Error handling image upload:", imageError);
+      return {
+        success: false,
+        error: "Failed to process image. Please try again.",
+      };
+    }
+
+    // Update the novel in the database
+    await db.update(stories).set(updateData).where(eq(stories.id, id));
+
+    // Get updated novel
+    const updatedNovel = await db.query.stories.findFirst({
+      where: eq(stories.id, id),
+    });
+
+    return {
+      success: true,
+      message: "Novel updated successfully",
+      novel: updatedNovel,
+    };
+  } catch (error) {
+    console.error("Error updating novel:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update novel",
     };
   }
 }
@@ -972,20 +1074,37 @@ export async function adminAddNovel(formData: FormData) {
     const description = formData.get("description") as string;
     const genre = formData.get("genre") as string;
     const youtubeEmbed = formData.get("youtubeEmbed") as string;
+    const coverImageUrl = formData.get("coverImageUrl") as string;
+    const coverImage = formData.get("coverImage") as File;
 
     // Validate required fields
     if (!title || !slug || !author || !description) {
       return { success: false, error: "Missing required fields" };
     }
 
-    // Handle cover image - we'll skip the file upload implementation
-    // In a real scenario, you would use a storage solution like AWS S3
-    // For now, we'll just use a placeholder image
+    // Handle cover image
     let coverImagePath = "";
 
-    // In real implementation, add file processing logic here
-    // For demo purposes, we'll use a placeholder
-    coverImagePath = "/images/placeholder.jpg";
+    try {
+      // If direct URL is provided, download and upload to R2
+      if (coverImageUrl) {
+        coverImagePath = await downloadAndUploadToR2(coverImageUrl, "novels");
+      }
+      // If file is provided, upload directly to R2
+      else if (coverImage && coverImage.size > 0) {
+        coverImagePath = await uploadFileToR2(coverImage, "novels");
+      }
+      // Otherwise use default placeholder
+      else {
+        coverImagePath = "/images/placeholder.jpg";
+      }
+    } catch (imageError) {
+      console.error("Error handling image upload:", imageError);
+      return {
+        success: false,
+        error: "Failed to process image. Please try again.",
+      };
+    }
 
     // Insert the novel into the database
     const newNovel = await db
@@ -2266,5 +2385,499 @@ export async function getDashboardStats() {
   } catch (error) {
     console.error("Error fetching dashboard statistics:", error);
     return { error: "Failed to fetch dashboard statistics" };
+  }
+}
+
+// =====================================================================
+// LICENSED STORIES ACTIONS
+// =====================================================================
+
+// Create a new licensed story with file upload support
+export async function createLicensedStory(formData: FormData) {
+  try {
+    // Check authentication and authorization
+    const session = await getSession();
+    if (!session || session.user.role !== "admin") {
+      return { success: false, error: "Unauthorized: Admin access required" };
+    }
+
+    // Extract form data
+    const title = formData.get("title") as string;
+    const slug = formData.get("slug") as string;
+    const author = formData.get("author") as string;
+    const description = formData.get("description") as string;
+    const genres = formData.get("genres") as string;
+    const status = formData.get("status") as string;
+    const purchaseLinksJson = formData.get("purchaseLinks") as string;
+    const purchaseLinks = JSON.parse(purchaseLinksJson);
+
+    const coverImage = formData.get("coverImage") as File;
+    const coverImageUrl = formData.get("coverImageUrl") as string;
+
+    // Validate required fields
+    if (!title || !slug || !author) {
+      return { success: false, error: "Missing required fields" };
+    }
+
+    // Handle cover image
+    let coverImagePath = "";
+
+    try {
+      // If direct URL is provided, download and upload to R2
+      if (coverImageUrl) {
+        coverImagePath = await downloadAndUploadToR2(
+          coverImageUrl,
+          "licensed-stories"
+        );
+      }
+      // If file is provided, upload directly to R2
+      else if (coverImage && coverImage.size > 0) {
+        coverImagePath = await uploadFileToR2(coverImage, "licensed-stories");
+      }
+      // Otherwise use default placeholder
+      else {
+        coverImagePath = "/images/placeholder.jpg";
+      }
+    } catch (imageError) {
+      console.error("Error handling image upload:", imageError);
+      return {
+        success: false,
+        error: "Failed to process image. Please try again.",
+      };
+    }
+
+    // Insert into database
+    const newStory = await db
+      .insert(licensedStories)
+      .values({
+        title,
+        slug,
+        author,
+        description,
+        coverImage: coverImagePath,
+        genres,
+        status: status as "ongoing" | "completed",
+        purchaseLinks: JSON.stringify(purchaseLinks), // Convert to JSON string
+        createdAt: Math.floor(Date.now() / 1000),
+        updatedAt: Math.floor(Date.now() / 1000),
+      })
+      .returning();
+
+    return {
+      success: true,
+      story: newStory[0],
+    };
+  } catch (error) {
+    console.error("Error creating licensed story:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to create licensed story",
+    };
+  }
+}
+
+// Update a licensed story with file upload support
+export async function updateLicensedStory(
+  slugOrId: string,
+  formData: FormData
+) {
+  try {
+    // Check authentication and authorization
+    const session = await getSession();
+    if (!session || session.user.role !== "admin") {
+      return { success: false, error: "Unauthorized: Admin access required" };
+    }
+
+    // Find the story first
+    let story;
+    if (isNaN(Number(slugOrId))) {
+      // It's a slug
+      story = await db.query.licensedStories.findFirst({
+        where: eq(licensedStories.slug, slugOrId),
+      });
+    } else {
+      // It's an ID
+      story = await db.query.licensedStories.findFirst({
+        where: eq(licensedStories.id, parseInt(slugOrId)),
+      });
+    }
+
+    if (!story) {
+      return { success: false, error: "Licensed story not found" };
+    }
+
+    // Extract form data
+    const title = formData.get("title") as string;
+    const slug = formData.get("slug") as string;
+    const author = formData.get("author") as string;
+    const description = formData.get("description") as string;
+    const genres = formData.get("genres") as string;
+    const status = formData.get("status") as string;
+    const purchaseLinksJson = formData.get("purchaseLinks") as string;
+    const purchaseLinks = JSON.parse(purchaseLinksJson);
+
+    const coverImage = formData.get("coverImage") as File;
+    const coverImageUrl = formData.get("coverImageUrl") as string;
+    // const currentCoverImage = formData.get("currentCoverImage") as string;
+
+    // Validate required fields
+    if (!title || !slug || !author) {
+      return { success: false, error: "Missing required fields" };
+    }
+
+    // Prepare update data
+    const updateData: Record<string, any> = {
+      title,
+      slug,
+      author,
+      description,
+      genres,
+      status: status as "ongoing" | "completed",
+      purchaseLinks: JSON.stringify(purchaseLinks), // Convert to JSON string
+      updatedAt: Math.floor(Date.now() / 1000),
+    };
+
+    // Handle cover image
+    try {
+      if (coverImageUrl) {
+        // If direct URL is provided, download and upload to R2
+        updateData.coverImage = await downloadAndUploadToR2(
+          coverImageUrl,
+          "licensed-stories"
+        );
+
+        // Delete old image if it's from R2 and different
+        if (
+          story.coverImage &&
+          story.coverImage !== updateData.coverImage &&
+          !story.coverImage.includes("/images/placeholder.jpg")
+        ) {
+          await deleteFileFromR2(story.coverImage);
+        }
+      } else if (coverImage && coverImage.size > 0) {
+        // If file is provided, upload directly to R2
+        updateData.coverImage = await uploadFileToR2(
+          coverImage,
+          "licensed-stories"
+        );
+
+        // Delete old image if it's from R2 and different
+        if (
+          story.coverImage &&
+          story.coverImage !== updateData.coverImage &&
+          !story.coverImage.includes("/images/placeholder.jpg")
+        ) {
+          await deleteFileFromR2(story.coverImage);
+        }
+      }
+      // If keeping current image, don't update the field
+    } catch (imageError) {
+      console.error("Error handling image upload:", imageError);
+      return {
+        success: false,
+        error: "Failed to process image. Please try again.",
+      };
+    }
+
+    // Update the story
+    await db
+      .update(licensedStories)
+      .set(updateData)
+      .where(eq(licensedStories.id, story.id));
+
+    // Fetch updated story
+    const updatedStory = await db.query.licensedStories.findFirst({
+      where: eq(licensedStories.id, story.id),
+    });
+
+    return {
+      success: true,
+      story: updatedStory,
+    };
+  } catch (error) {
+    console.error("Error updating licensed story:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to update licensed story",
+    };
+  }
+}
+
+// =====================================================================
+// EBOOK ACTIONS
+// =====================================================================
+
+// Create a new ebook with file upload support
+export async function createEbook(formData: FormData) {
+  try {
+    // Check authentication and authorization
+    const session = await getSession();
+    if (!session || session.user.role !== "admin") {
+      return { success: false, error: "Unauthorized: Admin access required" };
+    }
+
+    // Extract form data
+    const title = formData.get("title") as string;
+    const slug = formData.get("slug") as string;
+    const author = formData.get("author") as string;
+    const description = formData.get("description") as string;
+    const genres = formData.get("genres") as string;
+    const status = formData.get("status") as string;
+    const purchaseLinksJson = formData.get("purchaseLinks") as string;
+    const purchaseLinks = JSON.parse(purchaseLinksJson);
+
+    const coverImage = formData.get("coverImage") as File;
+    const coverImageUrl = formData.get("coverImageUrl") as string;
+
+    // Validate required fields
+    if (!title || !slug || !author) {
+      return { success: false, error: "Missing required fields" };
+    }
+
+    // Handle cover image
+    let coverImagePath = "";
+
+    try {
+      // If direct URL is provided, download and upload to R2
+      if (coverImageUrl) {
+        coverImagePath = await downloadAndUploadToR2(coverImageUrl, "ebooks");
+      }
+      // If file is provided, upload directly to R2
+      else if (coverImage && coverImage.size > 0) {
+        coverImagePath = await uploadFileToR2(coverImage, "ebooks");
+      }
+      // Otherwise use default placeholder
+      else {
+        coverImagePath = "/images/placeholder.jpg";
+      }
+    } catch (imageError) {
+      console.error("Error handling image upload:", imageError);
+      return {
+        success: false,
+        error: "Failed to process image. Please try again.",
+      };
+    }
+
+    // Insert into database
+    const newEbook = await db
+      .insert(ebooks)
+      .values({
+        title,
+        slug,
+        author,
+        description,
+        coverImage: coverImagePath,
+        genres,
+        status: status as "ongoing" | "completed",
+        purchaseLinks: JSON.stringify(purchaseLinks),
+        createdAt: Math.floor(Date.now() / 1000),
+        updatedAt: Math.floor(Date.now() / 1000),
+      })
+      .returning();
+
+    return {
+      success: true,
+      ebook: newEbook[0],
+    };
+  } catch (error) {
+    console.error("Error creating ebook:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create ebook",
+    };
+  }
+}
+
+// Update an ebook with file upload support
+export async function updateEbook(id: string, formData: FormData) {
+  try {
+    // Check authentication and authorization
+    const session = await getSession();
+    if (!session || session.user.role !== "admin") {
+      return { success: false, error: "Unauthorized: Admin access required" };
+    }
+
+    // Find the ebook first
+    const ebook = await db.query.ebooks.findFirst({
+      where: eq(ebooks.id, parseInt(id)),
+    });
+
+    if (!ebook) {
+      return { success: false, error: "Ebook not found" };
+    }
+
+    // Extract form data
+    const title = formData.get("title") as string;
+    const slug = formData.get("slug") as string;
+    const author = formData.get("author") as string;
+    const description = formData.get("description") as string;
+    const genres = formData.get("genres") as string;
+    const status = formData.get("status") as string;
+    const purchaseLinksJson = formData.get("purchaseLinks") as string;
+    const purchaseLinks = JSON.parse(purchaseLinksJson);
+
+    const coverImage = formData.get("coverImage") as File;
+    const coverImageUrl = formData.get("coverImageUrl") as string;
+    const currentCoverImage = formData.get("currentCoverImage") as string;
+
+    // Validate required fields
+    if (!title || !slug || !author) {
+      return { success: false, error: "Missing required fields" };
+    }
+
+    // Prepare update data
+    const updateData: Record<string, any> = {
+      title,
+      slug,
+      author,
+      description,
+      genres,
+      status: status as "ongoing" | "completed",
+      purchaseLinks: JSON.stringify(purchaseLinks),
+      updatedAt: Math.floor(Date.now() / 1000),
+    };
+
+    // Handle cover image
+    let coverImagePath = currentCoverImage || "";
+
+    try {
+      // If URL is provided, download and upload to R2
+      if (coverImageUrl && coverImageUrl !== currentCoverImage) {
+        coverImagePath = await downloadAndUploadToR2(coverImageUrl, "ebooks");
+      }
+      // If file is provided, upload directly to R2
+      else if (coverImage && coverImage.size > 0) {
+        coverImagePath = await uploadFileToR2(coverImage, "ebooks");
+      }
+
+      // Update the image path in the data
+      updateData.coverImage = coverImagePath;
+
+      // Delete old image if it's being replaced and is stored in R2
+      if (
+        ebook.coverImage &&
+        ebook.coverImage !== coverImagePath &&
+        ebook.coverImage.includes("r2.") &&
+        coverImagePath !== ebook.coverImage
+      ) {
+        try {
+          await deleteFileFromR2(ebook.coverImage);
+        } catch (deleteError) {
+          console.warn("Failed to delete old image:", deleteError);
+          // Continue with update even if deletion fails
+        }
+      }
+    } catch (imageError) {
+      console.error("Error handling image upload:", imageError);
+      return {
+        success: false,
+        error: "Failed to process image. Please try again.",
+      };
+    }
+
+    // Update the ebook
+    const updatedEbook = await db
+      .update(ebooks)
+      .set(updateData)
+      .where(eq(ebooks.id, parseInt(id)))
+      .returning();
+
+    return {
+      success: true,
+      ebook: updatedEbook[0],
+    };
+  } catch (error) {
+    console.error("Error updating ebook:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update ebook",
+    };
+  }
+}
+
+// Get ebook by ID or slug
+export async function getEbookById(idOrSlug: string) {
+  try {
+    let result;
+
+    if (isNaN(Number(idOrSlug))) {
+      // It's a slug
+      result = await db
+        .select()
+        .from(ebooks)
+        .where(eq(ebooks.slug, idOrSlug))
+        .limit(1);
+    } else {
+      // It's an ID
+      result = await db
+        .select()
+        .from(ebooks)
+        .where(eq(ebooks.id, Number(idOrSlug)))
+        .limit(1);
+    }
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    // Parse purchase links
+    return {
+      ...result[0],
+      purchaseLinks: result[0].purchaseLinks
+        ? JSON.parse(result[0].purchaseLinks as string)
+        : [],
+    };
+  } catch (error) {
+    console.error(`Error fetching ebook by ${idOrSlug}:`, error);
+    return null;
+  }
+}
+
+// Delete ebook by ID
+export async function deleteEbook(id: number) {
+  try {
+    // Check auth as admin
+    const session = await getSession();
+    if (!session || session.user.role !== "admin") {
+      return { success: false, error: "Unauthorized: Admin access required" };
+    }
+
+    // Check if ebook exists
+    const existingEbook = await db
+      .select()
+      .from(ebooks)
+      .where(eq(ebooks.id, id))
+      .limit(1);
+
+    if (existingEbook.length === 0) {
+      return { success: false, error: "Ebook not found" };
+    }
+
+    // Delete associated image from R2 if it exists
+    if (
+      existingEbook[0].coverImage &&
+      existingEbook[0].coverImage.includes("r2.")
+    ) {
+      try {
+        await deleteFileFromR2(existingEbook[0].coverImage);
+      } catch (deleteError) {
+        console.warn("Failed to delete ebook image:", deleteError);
+        // Continue with deletion even if image removal fails
+      }
+    }
+
+    // Delete ebook
+    await db.delete(ebooks).where(eq(ebooks.id, id));
+
+    return { success: true, message: "Ebook deleted successfully" };
+  } catch (error) {
+    console.error("Error deleting ebook:", error);
+    return { success: false, error: "Failed to delete ebook" };
   }
 }

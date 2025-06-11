@@ -52,9 +52,7 @@ function formatStory(dbStory: DbStoryResult): Story {
     totalChapters: 0, // Will be populated separately if needed
     views: dbStory.viewCount || 0,
     rating: 0, // Not implemented yet
-    lastUpdated: dbStory.updatedAt
-      ? new Date(dbStory.updatedAt * 1000).toLocaleDateString("vi-VN")
-      : new Date().toLocaleDateString("vi-VN"),
+    lastUpdated: formatDateForDisplay(dbStory.updatedAt),
     slug: dbStory.slug,
     youtubeEmbed: dbStory.youtubeEmbed || "",
   };
@@ -66,12 +64,39 @@ function formatChapter(dbChapter: DbChapterResult): Chapter {
     storyId: String(dbChapter.novelId),
     storySlug: "", // Will be populated separately if needed
     chapterNumber: dbChapter.chapterNumber,
+    slug: dbChapter.slug || `chuong-${dbChapter.chapterNumber}`, // Sử dụng slug từ DB hoặc tạo slug mặc định
     title: dbChapter.title,
     content: dbChapter.content,
-    publishedDate: dbChapter.createdAt
-      ? new Date(dbChapter.createdAt * 1000).toLocaleDateString("vi-VN")
-      : new Date().toLocaleDateString("vi-VN"),
+    publishedDate: formatDateForDisplay(dbChapter.createdAt),
   };
+}
+
+// Hàm hỗ trợ định dạng ngày tháng nhất quán
+function formatDateForDisplay(timestamp: number | null): string {
+  if (!timestamp) {
+    return "Không có";
+  }
+
+  // Chuyển đổi Unix timestamp thành Date
+  const date = new Date(timestamp * 1000);
+
+  // Kiểm tra xem ngày có phải là trong tương lai không
+  const now = new Date();
+  if (date > now) {
+    // Nếu ngày trong tương lai (có thể là lỗi), sử dụng ngày hiện tại
+    return now.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
+  // Định dạng ngày theo kiểu dd/MM/yyyy
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 // Server action to get all stories with pagination
@@ -153,8 +178,12 @@ export async function getFeaturedStories(count = 6) {
 // Server action to get latest chapters for homepage
 export async function getLatestChapters(count = 5) {
   try {
-    // First get all stories
-    const allStories = await db.select().from(stories).limit(10);
+    // Get stories sorted by their last update time
+    const allStories = await db
+      .select()
+      .from(stories)
+      .orderBy(desc(stories.updatedAt))
+      .limit(count * 2); // Lấy nhiều hơn để dự phòng
 
     const latestChapters = [];
 
@@ -169,6 +198,8 @@ export async function getLatestChapters(count = 5) {
       if (latestChapter.length > 0) {
         const chapter = formatChapter(latestChapter[0]);
         chapter.storySlug = story.slug; // Add the story slug
+        chapter.storyTitle = story.title; // Add the story title
+        chapter.storyAuthor = story.author || "Không rõ"; // Add the story author
         latestChapters.push(chapter);
       }
 
@@ -313,6 +344,60 @@ export async function getChapter(novelId: number, chapterNumber: number) {
   } catch (error) {
     console.error(
       `Error fetching chapter ${chapterNumber} for novel ${novelId}:`,
+      error
+    );
+    throw new Error("Failed to fetch chapter");
+  }
+}
+
+// Server action to get a specific chapter by slug
+export async function getChapterBySlug(novelId: number, chapterSlug: string) {
+  try {
+    // First get all chapters for this novel
+    const chapterResults = await db
+      .select()
+      .from(chapters)
+      .where(eq(chapters.novelId, novelId));
+
+    // Then filter for chapter slug or try to match by chuong-{number} pattern
+    let chapter = chapterResults.find((c) => c.slug === chapterSlug);
+
+    // Nếu không tìm thấy theo slug trực tiếp, thử tìm theo mẫu chuong-X
+    if (!chapter) {
+      // Trích xuất số chương từ chuỗi slug (ví dụ: chuong-3-abc -> 3)
+      const match = chapterSlug.match(/^chuong-(\d+)/i);
+      if (match && match[1]) {
+        const chapterNumber = parseInt(match[1], 10);
+        chapter = chapterResults.find((c) => c.chapterNumber === chapterNumber);
+      }
+    }
+
+    if (!chapter) {
+      return null;
+    }
+
+    // Increment view count
+    await db
+      .update(chapters)
+      .set({ viewCount: (chapter.viewCount || 0) + 1 })
+      .where(eq(chapters.id, chapter.id));
+
+    // Get the story to add the slug to the chapter
+    const storyResults = await db
+      .select()
+      .from(stories)
+      .where(eq(stories.id, novelId));
+
+    const formattedChapter = formatChapter(chapter);
+
+    if (storyResults.length > 0) {
+      formattedChapter.storySlug = storyResults[0].slug;
+    }
+
+    return formattedChapter;
+  } catch (error) {
+    console.error(
+      `Error fetching chapter with slug ${chapterSlug} for novel ${novelId}:`,
       error
     );
     throw new Error("Failed to fetch chapter");

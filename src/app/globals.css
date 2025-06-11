@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @plugin "daisyui" {
-  themes: retro --default, halloween --prefersdark;
+  themes: all;
 }
 
 @property --font-livvic {

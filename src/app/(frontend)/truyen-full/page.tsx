@@ -4,6 +4,7 @@ import { APP_CONFIG, PAGINATION } from "@/lib/config";
 import StoryCard from "@/components/StoryCard";
 import { getStories } from "@/lib/api";
 import PaginationServer from "@/components/PaginationServer";
+import HorizontalAdBanner from "@/components/HorizontalAdBanner";
 
 // Add ISR with 2-hour revalidation
 export const revalidate = 7200; // 2 hours in seconds
@@ -68,6 +69,8 @@ export default async function FullStoriesPage({ searchParams }: Props) {
               <StoryCard key={story.id} story={story} />
             ))}
           </div>
+
+          <HorizontalAdBanner adType="banner" position="content" />
 
           {pagination.totalPages > 1 && (
             <div className="flex justify-center mt-6">

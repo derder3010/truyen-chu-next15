@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "~image";
 
 interface SearchResultItemProps {
   item: any; // Có thể là Story, Licensed Story hoặc Ebook

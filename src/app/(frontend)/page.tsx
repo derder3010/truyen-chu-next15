@@ -164,11 +164,6 @@ export default async function HomePage() {
           getStoryBySlug={getStoryBySlug}
         />
 
-        {/* Truyện theo thể loại ngẫu nhiên */}
-        {genreStories.length > 0 && (
-          <GenreStoriesSection genreStories={genreStories} />
-        )}
-
         {/* Truyện Xuất Bản */}
         {licensedStories.length > 0 && (
           <FeaturedLicensedStories stories={licensedStories} />
@@ -176,6 +171,11 @@ export default async function HomePage() {
 
         <HorizontalAdBanner adType="banner" position="content" />
 
+        {/* Truyện theo thể loại ngẫu nhiên */}
+        {genreStories.length > 0 && (
+          <GenreStoriesSection genreStories={genreStories} />
+        )}
+        <HorizontalAdBanner adType="banner" position="content" />
         {/* Ebook */}
         {ebooks.length > 0 && <FeaturedEbooks stories={ebooks} />}
       </div>

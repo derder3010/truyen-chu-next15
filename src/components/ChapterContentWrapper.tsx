@@ -178,6 +178,7 @@ const ChapterContentWrapper: React.FC<ChapterContentWrapperProps> = ({
 
           {/* Horizontal banner ad */}
           <HorizontalAdBanner adType="banner" position="content" />
+          <HorizontalAdBanner adType="banner" position="content" />
 
           <div dangerouslySetInnerHTML={{ __html: secondHalf }} />
         </div>

@@ -157,10 +157,10 @@ const HorizontalAdBanner: React.FC<HorizontalAdBannerProps> = ({
           )}
 
           {/* Content */}
-          <div className="container mx-auto px-4 py-3 md:py-6 relative">
+          <div className="container mx-auto px-4 py-5 md:py-8 min-h-[80px] md:min-h-[100px] relative">
             <button
               onClick={handleDismiss}
-              className="absolute right-4 top-2 md:top-4 text-base-content/70 hover:text-base-content z-10"
+              className="absolute right-4 top-3 md:top-5 text-base-content/70 hover:text-base-content z-10"
               aria-label="Đóng quảng cáo"
             >
               <svg
@@ -195,7 +195,7 @@ const HorizontalAdBanner: React.FC<HorizontalAdBannerProps> = ({
                     {ad.title}
                   </p>
                   {ad.description && (
-                    <p className="text-xs md:text-sm text-base-content/80 mt-1 max-w-md mx-auto">
+                    <p className="text-xs md:text-sm text-base-content/80 mt-8 max-w-md mx-auto">
                       {ad.description}
                     </p>
                   )}
@@ -222,30 +222,35 @@ const HorizontalAdBanner: React.FC<HorizontalAdBannerProps> = ({
             onClick={handleAdClick}
             className="block"
           >
-            <div className="flex flex-col items-center gap-3 hover:opacity-90 transition-opacity">
-              <div className="flex items-center gap-2">
-                {/* <span className="badge badge-primary text-xs">Quảng cáo</span> */}
-                <h3 className="font-bold text-lg">{ad.title}</h3>
-              </div>
-
+            <div className="flex flex-col md:flex-row items-center gap-4 hover:opacity-90 transition-opacity">
               {ad.imageUrl && (
-                <div className="relative w-full h-[120px] md:h-[160px] max-w-screen-md">
+                <div className="relative w-full h-[180px] md:w-[320px] md:h-[180px] flex-shrink-0">
                   <Image
                     src={ad.imageUrl}
                     alt={ad.title}
                     fill
                     className="object-contain rounded-lg"
-                    sizes="(max-width: 768px) 100vw, 768px"
+                    sizes="(max-width: 768px) 100vw, 320px"
                     priority
                   />
                 </div>
               )}
 
-              {ad.description && (
-                <p className="text-sm text-base-content/80 text-center max-w-xl">
-                  {ad.description}
-                </p>
-              )}
+              <div className="w-full text-center md:text-left flex flex-col flex-grow justify-between">
+                <div>
+                  <h3 className="font-bold text-lg md:text-xl">{ad.title}</h3>
+                  {ad.description && (
+                    <p className="text-sm md:text-base text-base-content/80 mt-1 md:mt-2">
+                      {ad.description}
+                    </p>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <span className="btn btn-primary btn-sm md:btn-md">
+                    Xem thêm
+                  </span>
+                </div>
+              </div>
             </div>
           </Link>
         </div>

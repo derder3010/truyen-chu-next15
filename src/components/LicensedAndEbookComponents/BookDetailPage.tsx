@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import Image from "next/image";
+import Image from "~image";
 import Link from "next/link";
 import { BookItem } from "./CategoryPage";
 import { useRouter } from "next/navigation";
 import { clientGetRelatedBooks } from "@/lib/actions";
+import HorizontalAdBanner from "../HorizontalAdBanner";
 
 interface BookDetailPageProps {
   book: BookItem;
@@ -260,6 +261,8 @@ const BookDetailPage: React.FC<BookDetailPageProps> = ({ book, type }) => {
           )}
         </div>
       </div>
+
+      <HorizontalAdBanner adType="banner" position="content" />
 
       {/* Có thể bạn quan tâm */}
       <div className="card bg-base-100 shadow-lg">

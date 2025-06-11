@@ -1,8 +1,7 @@
-import React from "react";
 import Link from "next/link";
 import BookOpenIcon from "@/components/icons/BookOpenIcon";
 
-const NotFoundPage: React.FC = () => {
+export default function NotFound() {
   return (
     <div className="flex flex-col items-center justify-center text-center py-12 md:py-20">
       <BookOpenIcon className="w-24 h-24 text-primary-light dark:text-secondary-light mb-6 opacity-50" />
@@ -20,6 +19,4 @@ const NotFoundPage: React.FC = () => {
       </Link>
     </div>
   );
-};
-
-export default NotFoundPage;
+}

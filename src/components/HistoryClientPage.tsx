@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import ClockIcon from "@/components/icons/ClockIcon";
+import HorizontalAdBanner from "./HorizontalAdBanner";
 
 interface HistoryItem {
   storyId: string;
@@ -87,6 +88,8 @@ const HistoryClientPage: React.FC = () => {
         <h1 className="text-2xl font-bold">Lịch Sử Đọc Truyện</h1>
         <div className="h-1 flex-1 bg-primary opacity-20 rounded-full hidden md:block"></div>
       </div>
+
+      <HorizontalAdBanner adType="banner" position="content" />
 
       <div className="card bg-base-100 shadow-sm">
         <div className="card-body">

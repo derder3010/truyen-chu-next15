@@ -5,7 +5,7 @@ import { useSession } from "@/lib/auth/client";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "~image";
-import { getEbookBySlug, updateEbook } from "@/lib/api";
+import { getEbookBySlug } from "@/lib/api";
 
 // Function to convert Vietnamese characters to non-accented
 function removeVietnameseAccents(str: string) {
@@ -46,16 +46,86 @@ export default function EditEbookPage() {
   const [originalSlug, setOriginalSlug] = useState("");
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    slug: string;
+    author: string;
+    description: string;
+    coverImage: string;
+    genres: string;
+    status: "ongoing" | "completed";
+    purchaseLinks: { store: string; url: string }[];
+  }>({
     title: "",
     slug: "",
     author: "",
     description: "",
     coverImage: "",
     genres: "",
-    status: "completed" as "ongoing" | "completed",
+    status: "ongoing",
     purchaseLinks: [{ store: "", url: "" }],
   });
+
+  // Image handling state
+  const [currentCoverImage, setCurrentCoverImage] = useState<string | null>(
+    null
+  );
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [imageInputType, setImageInputType] = useState<
+    "file" | "url" | "current"
+  >("current");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Handle switching between image input types
+  const handleImageTypeChange = (type: "file" | "url" | "current") => {
+    // Reset relevant values when switching
+    if (type === "file") {
+      setCoverImageUrl("");
+      // Only reset preview if there's no file selected
+      if (!coverImage) {
+        setPreviewUrl(null);
+      }
+    } else if (type === "url") {
+      // When switching to URL
+      setCoverImage(null);
+      // Clear preview unless we already have a URL
+      setPreviewUrl(coverImageUrl || null);
+    } else {
+      // When switching to current
+      setCoverImage(null);
+      setCoverImageUrl("");
+      setPreviewUrl(currentCoverImage);
+    }
+    setImageInputType(type);
+  };
+
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setCoverImage(file);
+      // Create a preview URL for the selected file
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  // Update preview when URL changes
+  useEffect(() => {
+    // Only update preview from URL when in URL mode and when URL changes
+    if (imageInputType === "url") {
+      setPreviewUrl(coverImageUrl || null);
+    }
+  }, [coverImageUrl, imageInputType]);
+
+  // Clean up preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   // Define fetchEbook with useCallback to properly handle dependencies
   const fetchEbook = useCallback(async () => {
@@ -87,6 +157,12 @@ export default function EditEbookPage() {
             : [{ store: "", url: "" }],
       });
       setOriginalSlug(ebook.slug || "");
+
+      // Set current cover image for preview
+      if (ebook.coverImage) {
+        setCurrentCoverImage(ebook.coverImage);
+        setPreviewUrl(ebook.coverImage);
+      }
 
       setError(null);
     } catch (error) {
@@ -165,16 +241,43 @@ export default function EditEbookPage() {
     });
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+
     try {
-      setIsSubmitting(true);
-      setError(null);
+      // Create FormData to handle file uploads
+      const formDataObj = new FormData();
+      formDataObj.append("title", formData.title);
+      formDataObj.append("slug", formData.slug);
+      formDataObj.append("author", formData.author);
+      formDataObj.append("description", formData.description);
+      formDataObj.append("genres", formData.genres);
+      formDataObj.append("status", formData.status);
+      formDataObj.append(
+        "purchaseLinks",
+        JSON.stringify(formData.purchaseLinks)
+      );
 
-      // Use the server action to update the ebook
-      await updateEbook(ebookSlug, formData);
+      // Handle image based on input type
+      if (imageInputType === "current" && currentCoverImage) {
+        formDataObj.append("currentCoverImage", currentCoverImage);
+      } else if (imageInputType === "file" && coverImage) {
+        formDataObj.append("coverImage", coverImage);
+      } else if (imageInputType === "url" && coverImageUrl) {
+        formDataObj.append("coverImageUrl", coverImageUrl);
+      }
 
-      // Show success message
+      // Import and use server action
+      const { updateEbook } = await import("@/lib/actions");
+      const result = await updateEbook(ebookSlug, formDataObj);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update ebook");
+      }
+
       setFormSuccess(true);
 
       // Redirect to ebooks list after successful update
@@ -315,28 +418,113 @@ export default function EditEbookPage() {
             <div className="space-y-4">
               <div className="form-control w-full">
                 <label className="label">
-                  <span className="label-text">URL Ảnh bìa</span>
+                  <span className="label-text">Ảnh bìa</span>
                 </label>
-                <input
-                  type="url"
-                  name="coverImage"
-                  value={formData.coverImage}
-                  onChange={handleFormChange}
-                  placeholder="https://example.com/image.jpg"
-                  className="input input-bordered w-full mt-2"
-                />
+
+                <div className="flex flex-col gap-2">
+                  <div className="tabs tabs-boxed inline-flex w-fit mb-2">
+                    <a
+                      className={`tab ${
+                        imageInputType === "current" ? "tab-active" : ""
+                      }`}
+                      onClick={() => handleImageTypeChange("current")}
+                    >
+                      Giữ ảnh hiện tại
+                    </a>
+                    <a
+                      className={`tab ${
+                        imageInputType === "file" ? "tab-active" : ""
+                      }`}
+                      onClick={() => handleImageTypeChange("file")}
+                    >
+                      Tải lên ảnh
+                    </a>
+                    <a
+                      className={`tab ${
+                        imageInputType === "url" ? "tab-active" : ""
+                      }`}
+                      onClick={() => handleImageTypeChange("url")}
+                    >
+                      Đường dẫn URL
+                    </a>
+                  </div>
+
+                  {/* Current image option - always rendered but conditionally displayed */}
+                  <div
+                    style={{
+                      display: imageInputType === "current" ? "block" : "none",
+                    }}
+                  >
+                    {currentCoverImage && (
+                      <div className="mt-2">
+                        <p className="text-sm mb-2">Ảnh hiện tại:</p>
+                        <div className="avatar">
+                          <div className="w-40 rounded">
+                            <Image
+                              src={currentCoverImage}
+                              alt="Cover image"
+                              width={160}
+                              height={160}
+                              className="object-contain"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* File input - always rendered but conditionally displayed */}
+                  <div
+                    style={{
+                      display: imageInputType === "file" ? "block" : "none",
+                    }}
+                  >
+                    <input
+                      type="file"
+                      className="file-input file-input-bordered w-full"
+                      onChange={handleFileChange}
+                      accept="image/*"
+                    />
+                  </div>
+
+                  {/* URL input - always rendered but conditionally displayed */}
+                  <div
+                    style={{
+                      display: imageInputType === "url" ? "block" : "none",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      className="input input-bordered w-full"
+                      placeholder="Nhập URL hình ảnh"
+                      value={coverImageUrl || ""}
+                      onChange={(e) => setCoverImageUrl(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Image Preview for new file/url */}
+                  {previewUrl && imageInputType !== "current" && (
+                    <div className="mt-4">
+                      <p className="text-sm mb-2">Xem trước:</p>
+                      <div className="avatar">
+                        <div className="w-40 rounded">
+                          <Image
+                            src={previewUrl}
+                            alt="Cover preview"
+                            width={160}
+                            height={160}
+                            className="object-cover"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {formData.coverImage && (
-                <div className="mt-2">
-                  <p className="text-sm mb-2">Xem trước ảnh bìa:</p>
-                  <Image
-                    src={formData.coverImage}
-                    alt="Cover Preview"
-                    width={150}
-                    height={225}
-                    className="object-cover rounded-md"
-                  />
+                <div className="mt-2" style={{ display: "none" }}>
+                  {/* Hidden to maintain backward compatibility */}
                 </div>
               )}
 

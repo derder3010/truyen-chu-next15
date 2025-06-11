@@ -8,6 +8,7 @@ import TagIcon from "@/components/icons/TagIcon";
 import Pagination from "../Pagination";
 import BookCard from "./BookCard";
 import { clientGetEbooks, clientGetLicensedStories } from "@/lib/actions";
+import HorizontalAdBanner from "../HorizontalAdBanner";
 
 // Fetcher function for SWR using server actions
 const booksFetcher = async ([type, page, tag]: [
@@ -159,6 +160,8 @@ const CategoryPage: React.FC<CategoryPageProps> = ({
               <BookCard key={book.id} book={book} type={type} />
             ))}
           </div>
+
+          <HorizontalAdBanner adType="banner" position="content" />
 
           {pagination.totalPages > 1 && (
             <div className="flex justify-center mt-6">

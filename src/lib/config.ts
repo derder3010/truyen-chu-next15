@@ -21,6 +21,15 @@ export const NAV_LINKS = [
   { label: "Lịch Sử", path: "/lich-su" },
 ];
 
+// Danh sách ID video YouTube để hiển thị ngẫu nhiên trong trang tải ebook
+export const YOUTUBE_VIDEOS = [
+  "YNqQGNMR3R4", // Video 1
+  "SjMhfEvqSrE", // Video 2
+  "uj0MMi9-i5Y", // Video 3
+  "YwVQ7-NBSMI", // Video 4
+  "DBU8umhgUn0", // Video 5
+];
+
 // Các cấu hình khác
 export const APP_CONFIG = {
   APP_NAME: "Truyện Full",

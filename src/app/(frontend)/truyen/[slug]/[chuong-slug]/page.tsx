@@ -7,7 +7,11 @@ import KeyboardNavigation from "@/components/KeyboardNavigation";
 import ReadingHistoryTracker from "@/components/ReadingHistoryTracker";
 import FontSizeScript from "@/components/FontSizeScript";
 import ChapterContentWrapper from "@/components/ChapterContentWrapper";
-import { getStoryBySlug, getChaptersByStoryId, getChapter } from "@/lib/api";
+import {
+  getStoryBySlug,
+  getChaptersByStoryId,
+  getChapterBySlug,
+} from "@/lib/api";
 
 // Add ISR with 2-hour revalidation
 export const revalidate = 7200; // 2 hours in seconds
@@ -25,16 +29,8 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug: storySlug, "chuong-slug": chapterSlug } = await params;
-  const chapterNumber = parseInt(chapterSlug, 10);
 
-  if (isNaN(chapterNumber)) {
-    return {
-      title: "Chapter Not Found",
-      description: "The requested chapter could not be found.",
-    };
-  }
-
-  // Get story and chapter data
+  // Get story data
   const story = await getStoryBySlug(storySlug);
   if (!story) {
     return {
@@ -43,7 +39,8 @@ export async function generateMetadata(
     };
   }
 
-  const chapter = await getChapter(Number(story.id), chapterNumber);
+  // Get chapter data
+  const chapter = await getChapterBySlug(Number(story.id), chapterSlug);
   if (!chapter) {
     return {
       title: "Chapter Not Found",
@@ -66,7 +63,7 @@ export async function generateMetadata(
       title,
       description,
       url: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/truyen/${storySlug}/${
-        chapter.chapterNumber
+        chapter.slug || `chuong-${chapter.chapterNumber}`
       }`,
       siteName: "Truyện Chữ",
       locale: "vi_VN",
@@ -88,11 +85,6 @@ export async function generateMetadata(
 
 export default async function ChapterPage({ params }: Props) {
   const { slug: storySlug, "chuong-slug": chapterSlug } = await params;
-  const chapterNumber = parseInt(chapterSlug, 10);
-
-  if (isNaN(chapterNumber)) {
-    return notFound();
-  }
 
   // Get story data
   const story = await getStoryBySlug(storySlug);
@@ -100,8 +92,8 @@ export default async function ChapterPage({ params }: Props) {
     return notFound();
   }
 
-  // Get current chapter
-  const chapter = await getChapter(Number(story.id), chapterNumber);
+  // Get current chapter using slug
+  const chapter = await getChapterBySlug(Number(story.id), chapterSlug);
   if (!chapter) {
     return notFound();
   }
@@ -119,7 +111,7 @@ export default async function ChapterPage({ params }: Props) {
   );
 
   const currentIndex = storyChapters.findIndex(
-    (c) => c.chapterNumber === chapterNumber
+    (c) => c.chapterNumber === chapter.chapterNumber
   );
 
   const prevChapter = currentIndex > 0 ? storyChapters[currentIndex - 1] : null;
@@ -138,7 +130,7 @@ export default async function ChapterPage({ params }: Props) {
         story={story}
         storySlug={storySlug}
         chapter={chapter}
-        currentChapterNum={chapterNumber}
+        currentChapterNum={chapter.chapterNumber}
       />
 
       <div className="mb-6 pb-4 border-b border-base-300">
@@ -156,7 +148,7 @@ export default async function ChapterPage({ params }: Props) {
 
       <KeyboardNavigation
         storySlug={storySlug}
-        currentChapterNum={chapterNumber}
+        currentChapterNum={chapter.chapterNumber}
         prevChapter={prevChapter}
         nextChapter={nextChapter}
       />
@@ -176,7 +168,7 @@ export default async function ChapterPage({ params }: Props) {
       <div className="w-full pb-16 sm:pb-0 min-h-screen">
         <ChapterContentWrapper
           content={chapter.content}
-          chapterNumber={chapterNumber}
+          chapterNumber={chapter.chapterNumber}
         />
       </div>
 

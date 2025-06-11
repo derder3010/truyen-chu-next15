@@ -13,7 +13,9 @@ const ChapterListItem: React.FC<ChapterListItemProps> = ({
 }) => {
   return (
     <Link
-      href={`/truyen/${storySlug}/${chapter.chapterNumber}`}
+      href={`/truyen/${storySlug}/${
+        chapter.slug || `chuong-${chapter.chapterNumber}`
+      }`}
       className="block hover:bg-base-200 transition-colors"
     >
       <div className="flex justify-between items-center px-4 py-3">

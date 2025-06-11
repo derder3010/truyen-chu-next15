@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import Image from "~image";
 import { BookItem } from "./CategoryPage";
 
 interface BookCardProps {

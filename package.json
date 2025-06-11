@@ -15,6 +15,8 @@
     "upload:stories": "tsx src/lib/db/upload.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.826.0",
+    "@aws-sdk/credential-providers": "^3.826.0",
     "@libsql/client": "^0.15.8",
     "@types/jsonwebtoken": "^9.0.9",
     "@vercel/analytics": "^1.5.0",

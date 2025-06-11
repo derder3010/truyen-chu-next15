@@ -5,7 +5,7 @@ import { useSession } from "@/lib/auth/client";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "~image";
-import { getLicensedStoryBySlug, updateLicensedStory } from "@/lib/api";
+import { getLicensedStoryBySlug } from "@/lib/api";
 
 // Function to convert Vietnamese characters to non-accented
 function removeVietnameseAccents(str: string) {
@@ -46,11 +46,21 @@ export default function EditLicensedStoryPage() {
     slug: "",
     author: "",
     description: "",
-    coverImage: "",
     genres: "",
     status: "ongoing" as "ongoing" | "completed",
     purchaseLinks: [{ store: "", url: "" }],
   });
+
+  // Image handling state
+  const [currentCoverImage, setCurrentCoverImage] = useState<string | null>(
+    null
+  );
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [imageInputType, setImageInputType] = useState<
+    "file" | "url" | "current"
+  >("current");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Define fetchStory with useCallback
   const fetchStory = useCallback(async () => {
@@ -73,7 +83,6 @@ export default function EditLicensedStoryPage() {
         slug: story.slug,
         author: story.author,
         description: story.description || "",
-        coverImage: story.coverImage || "",
         genres: story.genres || "",
         status: story.status || "ongoing",
         purchaseLinks:
@@ -81,6 +90,7 @@ export default function EditLicensedStoryPage() {
             ? story.purchaseLinks
             : [{ store: "", url: "" }],
       });
+      setCurrentCoverImage(story.coverImage || null);
       setOriginalSlug(story.slug || "");
 
       setError(null);
@@ -121,6 +131,47 @@ export default function EditLicensedStoryPage() {
       [name]: value,
     }));
   };
+
+  // Handle switching between image input types
+  const handleImageTypeChange = (type: "file" | "url" | "current") => {
+    // Reset relevant values when switching
+    if (type === "file") {
+      setCoverImageUrl("");
+    } else if (type === "url") {
+      setCoverImage(null);
+    }
+    setImageInputType(type);
+  };
+
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setCoverImage(file);
+      // Create a preview URL for the selected file
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  // Update preview when URL changes
+  useEffect(() => {
+    if (imageInputType === "url" && coverImageUrl) {
+      setPreviewUrl(coverImageUrl);
+    } else if (imageInputType === "file" && !coverImage) {
+      setPreviewUrl(null);
+    } else if (imageInputType === "current") {
+      setPreviewUrl(null);
+    }
+  }, [coverImageUrl, imageInputType, coverImage]);
+
+  // Clean up preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   // Update slug when title changes (only if user hasn't manually edited it)
   useEffect(() => {
@@ -166,8 +217,35 @@ export default function EditLicensedStoryPage() {
       setIsSubmitting(true);
       setError(null);
 
-      // Use the server action to update the story
-      await updateLicensedStory(storySlug, formData);
+      // Create FormData to handle file uploads
+      const formDataObj = new FormData();
+      formDataObj.append("title", formData.title);
+      formDataObj.append("slug", formData.slug);
+      formDataObj.append("author", formData.author);
+      formDataObj.append("description", formData.description);
+      formDataObj.append("genres", formData.genres);
+      formDataObj.append("status", formData.status);
+      formDataObj.append(
+        "purchaseLinks",
+        JSON.stringify(formData.purchaseLinks)
+      );
+
+      // Handle image based on input type
+      if (imageInputType === "file" && coverImage) {
+        formDataObj.append("coverImage", coverImage);
+      } else if (imageInputType === "url" && coverImageUrl) {
+        formDataObj.append("coverImageUrl", coverImageUrl);
+      } else if (imageInputType === "current" && currentCoverImage) {
+        formDataObj.append("currentCoverImage", currentCoverImage);
+      }
+
+      // Import and use server action
+      const { updateLicensedStory } = await import("@/lib/actions");
+      const result = await updateLicensedStory(storySlug, formDataObj);
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update story");
+      }
 
       // Show success message
       setFormSuccess(true);
@@ -337,30 +415,109 @@ export default function EditLicensedStoryPage() {
 
                 <div className="form-control w-full">
                   <label className="label">
-                    <span className="label-text">URL ảnh bìa</span>
+                    <span className="label-text">Ảnh bìa</span>
                   </label>
-                  {formData.coverImage && (
-                    <div className="mb-2">
-                      <p className="text-sm mb-2">Ảnh hiện tại:</p>
-                      <div className="avatar">
-                        <div className="w-24 rounded">
-                          <Image
-                            src={formData.coverImage}
-                            alt="Cover image"
-                            width={96}
-                            height={96}
-                          />
+
+                  <div className="flex flex-col gap-2">
+                    <div className="tabs tabs-boxed inline-flex w-fit mb-2">
+                      <a
+                        className={`tab ${
+                          imageInputType === "current" ? "tab-active" : ""
+                        }`}
+                        onClick={() => handleImageTypeChange("current")}
+                      >
+                        Giữ ảnh hiện tại
+                      </a>
+                      <a
+                        className={`tab ${
+                          imageInputType === "file" ? "tab-active" : ""
+                        }`}
+                        onClick={() => handleImageTypeChange("file")}
+                      >
+                        Tải lên ảnh
+                      </a>
+                      <a
+                        className={`tab ${
+                          imageInputType === "url" ? "tab-active" : ""
+                        }`}
+                        onClick={() => handleImageTypeChange("url")}
+                      >
+                        Đường dẫn URL
+                      </a>
+                    </div>
+
+                    {/* Current image option - always rendered but conditionally displayed */}
+                    <div
+                      style={{
+                        display:
+                          imageInputType === "current" ? "block" : "none",
+                      }}
+                    >
+                      {currentCoverImage && (
+                        <div className="mt-2">
+                          <p className="text-sm mb-2">Ảnh hiện tại:</p>
+                          <div className="avatar">
+                            <div className="w-40 rounded">
+                              <Image
+                                src={currentCoverImage}
+                                alt="Cover image"
+                                width={160}
+                                height={160}
+                                className="object-contain"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* File input - always rendered but conditionally displayed */}
+                    <div
+                      style={{
+                        display: imageInputType === "file" ? "block" : "none",
+                      }}
+                    >
+                      <input
+                        type="file"
+                        className="file-input file-input-bordered w-full"
+                        onChange={handleFileChange}
+                        accept="image/*"
+                      />
+                    </div>
+
+                    {/* URL input - always rendered but conditionally displayed */}
+                    <div
+                      style={{
+                        display: imageInputType === "url" ? "block" : "none",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        className="input input-bordered w-full"
+                        placeholder="Nhập URL hình ảnh"
+                        value={coverImageUrl || ""}
+                        onChange={(e) => setCoverImageUrl(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Image Preview for new file/url */}
+                    {previewUrl && imageInputType !== "current" && (
+                      <div className="mt-4">
+                        <p className="text-sm mb-2">Xem trước:</p>
+                        <div className="avatar">
+                          <div className="w-40 rounded">
+                            <Image
+                              src={previewUrl}
+                              alt="Cover preview"
+                              width={160}
+                              height={160}
+                              className="object-cover"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                  <input
-                    type="text"
-                    name="coverImage"
-                    value={formData.coverImage}
-                    onChange={handleFormChange}
-                    className="input input-bordered w-full mt-2"
-                  />
+                    )}
+                  </div>
                 </div>
 
                 <div className="form-control w-full">

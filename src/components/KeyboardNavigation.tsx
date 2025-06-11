@@ -15,9 +15,17 @@ const KeyboardNavigation: React.FC<KeyboardNavigationProps> = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "ArrowLeft" && prevChapter) {
-        router.push(`/truyen/${storySlug}/${prevChapter.chapterNumber}`);
+        router.push(
+          `/truyen/${storySlug}/${
+            prevChapter.slug || `chuong-${prevChapter.chapterNumber}`
+          }`
+        );
       } else if (event.key === "ArrowRight" && nextChapter) {
-        router.push(`/truyen/${storySlug}/${nextChapter.chapterNumber}`);
+        router.push(
+          `/truyen/${storySlug}/${
+            nextChapter.slug || `chuong-${nextChapter.chapterNumber}`
+          }`
+        );
       }
     };
 

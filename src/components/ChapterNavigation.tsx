@@ -38,7 +38,15 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
   const handleChapterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const chapterNumber = e.target.value;
     setSelectedChapter(chapterNumber);
-    router.push(`/truyen/${storySlug}/${chapterNumber}`);
+
+    // Tìm chapter có chapterNumber tương ứng
+    const selectedChap = allChapters.find(
+      (c) => c.chapterNumber.toString() === chapterNumber
+    );
+
+    // Sử dụng slug nếu có, nếu không thì sử dụng chuong-{chapterNumber}
+    const chapterSlug = selectedChap?.slug || `chuong-${chapterNumber}`;
+    router.push(`/truyen/${storySlug}/${chapterSlug}`);
   };
 
   // Mobile sticky bottom navigation
@@ -49,7 +57,9 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
           <Link
             href={
               prevChapter
-                ? `/truyen/${storySlug}/${prevChapter.chapterNumber}`
+                ? `/truyen/${storySlug}/${
+                    prevChapter.slug || `chuong-${prevChapter.chapterNumber}`
+                  }`
                 : "#"
             }
             className={`btn btn-sm btn-circle ${
@@ -76,7 +86,9 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
           <Link
             href={
               nextChapter
-                ? `/truyen/${storySlug}/${nextChapter.chapterNumber}`
+                ? `/truyen/${storySlug}/${
+                    nextChapter.slug || `chuong-${nextChapter.chapterNumber}`
+                  }`
                 : "#"
             }
             className={`btn btn-sm btn-circle ${
@@ -106,7 +118,9 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
             <Link
               href={
                 prevChapter
-                  ? `/truyen/${storySlug}/${prevChapter.chapterNumber}`
+                  ? `/truyen/${storySlug}/${
+                      prevChapter.slug || `chuong-${prevChapter.chapterNumber}`
+                    }`
                   : "#"
               }
               className={`btn btn-sm btn-circle ${
@@ -133,7 +147,9 @@ const ChapterNavigation: React.FC<ChapterNavigationProps> = ({
             <Link
               href={
                 nextChapter
-                  ? `/truyen/${storySlug}/${nextChapter.chapterNumber}`
+                  ? `/truyen/${storySlug}/${
+                      nextChapter.slug || `chuong-${nextChapter.chapterNumber}`
+                    }`
                   : "#"
               }
               className={`btn btn-sm btn-circle ${

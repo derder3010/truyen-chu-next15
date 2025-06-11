@@ -11,6 +11,7 @@ const Footer: React.FC = () => {
           <p className="font-bold text-lg">{APP_CONFIG.APP_NAME}</p>
         </div>
         <p className="text-sm">Đọc truyện chữ online</p>
+        <p className="text-sm">Liên hệ email: contact@stationd.blog</p>
       </div>
     </footer>
   );
