@@ -1,0 +1,27 @@
+[
+  {
+    "title": "Ebook Sample 1",
+    "slug": "ebook-sample-1",
+    "author": "Author One",
+    "description": "Sample description for ebook one.",
+    "coverImage": "https://example.com/sample1.jpg",
+    "genres": ["Fiction", "Adventure"],
+    "status": "completed",
+    "purchaseLinks": [
+      { "name": "Store A", "url": "https://store-a.com/sample1" },
+      { "name": "Store B", "url": "https://store-b.com/sample1" }
+    ]
+  },
+  {
+    "title": "Ebook Sample 2",
+    "slug": "ebook-sample-2",
+    "author": "Author Two",
+    "description": "Another ebook used as sample data.",
+    "coverImage": "https://example.com/sample2.jpg",
+    "genres": ["Drama"],
+    "status": "ongoing",
+    "purchaseLinks": [
+      { "name": "Store C", "url": "https://store-c.com/sample2" }
+    ]
+  }
+]
